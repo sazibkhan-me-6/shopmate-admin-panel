@@ -25,29 +25,39 @@ import {
   Headphones,
   CreditCard,
   ShieldCheck,
+  Pencil,
+  Phone,
+  MapPin,
+  Tag,
+  Award,
 } from 'lucide-react';
 
 import LoginScreen, { UserProfile } from '../components/LoginScreen';
-import AddProductModal from '../components/AddProductModal';
+import AddProductModal, { ProductFormData } from '../components/AddProductModal';
 import AddCategoryModal, { CategoryItem } from '../components/AddCategoryModal';
 import CustomerSupportModal from '../components/CustomerSupportModal';
 import PaymentMethodsModal, { PaymentMethodItem } from '../components/PaymentMethodsModal';
+import CustomerModal, { CustomerData } from '../components/CustomerModal';
 
-type Product = {
+export type Product = {
   id: number;
   name: string;
   sku: string;
   category: string;
   price: number;
+  discountPercent?: number;
+  discountedPrice?: number;
   stock: number;
   status: 'Active' | 'Low stock' | 'Draft';
   image?: string;
   emoji?: string;
 };
 
-type Order = {
+export type Order = {
   id: string;
   customer: string;
+  phone: string;
+  address: string;
   date: string;
   total: number;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
@@ -60,6 +70,8 @@ const initialProducts: Product[] = [
     sku: 'BAG-001',
     category: 'Accessories',
     price: 49.99,
+    discountPercent: 10,
+    discountedPrice: 44.99,
     stock: 38,
     status: 'Active',
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80',
@@ -71,6 +83,8 @@ const initialProducts: Product[] = [
     sku: 'ELC-014',
     category: 'Electronics',
     price: 89.00,
+    discountPercent: 15,
+    discountedPrice: 75.65,
     stock: 7,
     status: 'Low stock',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80',
@@ -82,6 +96,8 @@ const initialProducts: Product[] = [
     sku: 'HOM-008',
     category: 'Home & Living',
     price: 34.50,
+    discountPercent: 0,
+    discountedPrice: 34.50,
     stock: 24,
     status: 'Active',
     image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400&q=80',
@@ -93,6 +109,8 @@ const initialProducts: Product[] = [
     sku: 'SHO-021',
     category: 'Fashion & Apparel',
     price: 72.00,
+    discountPercent: 20,
+    discountedPrice: 57.60,
     stock: 0,
     status: 'Draft',
     image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
@@ -104,6 +122,8 @@ const initialProducts: Product[] = [
     sku: 'HOM-012',
     category: 'Home & Living',
     price: 41.25,
+    discountPercent: 0,
+    discountedPrice: 41.25,
     stock: 13,
     status: 'Active',
     image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80',
@@ -139,11 +159,120 @@ const initialCategories: CategoryItem[] = [
 ];
 
 const initialOrders: Order[] = [
-  { id: '#SM-1048', customer: 'Olivia Martin', date: 'Nov 14, 2026', total: 138.99, status: 'Processing' },
-  { id: '#SM-1047', customer: 'Noah Williams', date: 'Nov 14, 2026', total: 89.00, status: 'Shipped' },
-  { id: '#SM-1046', customer: 'Emma Brown', date: 'Nov 13, 2026', total: 72.00, status: 'Delivered' },
-  { id: '#SM-1045', customer: 'Liam Davis', date: 'Nov 13, 2026', total: 34.50, status: 'Cancelled' },
-  { id: '#SM-1044', customer: 'Ava Wilson', date: 'Nov 12, 2026', total: 91.24, status: 'Delivered' },
+  {
+    id: '#SM-1048',
+    customer: 'Olivia Martin',
+    phone: '+880 1712-345678',
+    address: 'House 42, Road 11, Block D, Banani, Dhaka',
+    date: 'Nov 14, 2026',
+    total: 138.99,
+    status: 'Processing',
+  },
+  {
+    id: '#SM-1047',
+    customer: 'Noah Williams',
+    phone: '+880 1823-456789',
+    address: 'Plot 15, Sector 7, Uttara Model Town, Dhaka',
+    date: 'Nov 14, 2026',
+    total: 89.00,
+    status: 'Shipped',
+  },
+  {
+    id: '#SM-1046',
+    customer: 'Emma Brown',
+    phone: '+880 1934-567890',
+    address: 'Flat 4B, GEC Circle, Nasirabad, Chattogram',
+    date: 'Nov 13, 2026',
+    total: 72.00,
+    status: 'Delivered',
+  },
+  {
+    id: '#SM-1045',
+    customer: 'Liam Davis',
+    phone: '+880 1545-678901',
+    address: 'East Zindabazar, Sylhet Sadar, Sylhet',
+    date: 'Nov 13, 2026',
+    total: 34.50,
+    status: 'Cancelled',
+  },
+  {
+    id: '#SM-1044',
+    customer: 'Ava Wilson',
+    phone: '+880 1656-789012',
+    address: 'House 14, Road 27, Dhanmondi, Dhaka',
+    date: 'Nov 12, 2026',
+    total: 91.24,
+    status: 'Delivered',
+  },
+];
+
+const initialCustomers: CustomerData[] = [
+  {
+    id: 1,
+    name: 'Olivia Martin',
+    email: 'olivia.martin@example.com',
+    phone: '+880 1712-345678',
+    address: 'House 42, Road 11, Block D, Banani, Dhaka',
+    ordersCount: 12,
+    totalSpent: 482.0,
+    status: 'VIP',
+    avatar: 'OM',
+  },
+  {
+    id: 2,
+    name: 'Noah Williams',
+    email: 'noah.williams@example.com',
+    phone: '+880 1823-456789',
+    address: 'Plot 15, Sector 7, Uttara Model Town, Dhaka',
+    ordersCount: 8,
+    totalSpent: 329.0,
+    status: 'Active',
+    avatar: 'NW',
+  },
+  {
+    id: 3,
+    name: 'Emma Brown',
+    email: 'emma.brown@example.com',
+    phone: '+880 1934-567890',
+    address: 'Flat 4B, GEC Circle, Nasirabad, Chattogram',
+    ordersCount: 5,
+    totalSpent: 216.0,
+    status: 'Active',
+    avatar: 'EB',
+  },
+  {
+    id: 4,
+    name: 'Liam Davis',
+    email: 'liam.davis@example.com',
+    phone: '+880 1545-678901',
+    address: 'East Zindabazar, Sylhet Sadar, Sylhet',
+    ordersCount: 3,
+    totalSpent: 134.0,
+    status: 'Inactive',
+    avatar: 'LD',
+  },
+  {
+    id: 5,
+    name: 'Ava Wilson',
+    email: 'ava.wilson@example.com',
+    phone: '+880 1656-789012',
+    address: 'House 14, Road 27, Dhanmondi, Dhaka',
+    ordersCount: 9,
+    totalSpent: 391.0,
+    status: 'VIP',
+    avatar: 'AW',
+  },
+  {
+    id: 6,
+    name: 'Sophia Taylor',
+    email: 'sophia.taylor@example.com',
+    phone: '+880 1367-890123',
+    address: 'Khilgaon Chowdhury Para, Dhaka - 1219',
+    ordersCount: 2,
+    totalSpent: 88.0,
+    status: 'Active',
+    avatar: 'ST',
+  },
 ];
 
 const nav = [
@@ -167,13 +296,20 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [categories, setCategories] = useState<CategoryItem[]>(initialCategories);
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [customers, setCustomers] = useState<CustomerData[]>(initialCustomers);
   const [query, setQuery] = useState('');
   const [mobile, setMobile] = useState(false);
   const [notice, setNotice] = useState('');
 
   // Modals
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductFormData | null>(null);
+
   const [showAddCategory, setShowAddCategory] = useState(false);
+
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerData | null>(null);
+
   const [showSupport, setShowSupport] = useState(false);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
 
@@ -222,42 +358,90 @@ export default function Home() {
   const filteredOrders = useMemo(
     () =>
       orders.filter(o =>
-        (o.id + ' ' + o.customer + ' ' + o.status).toLowerCase().includes(query.toLowerCase())
+        (o.id + ' ' + o.customer + ' ' + o.phone + ' ' + o.address + ' ' + o.status)
+          .toLowerCase()
+          .includes(query.toLowerCase())
       ),
     [orders, query]
   );
 
-  const filteredCategories = useMemo(
+  const filteredCustomers = useMemo(
     () =>
-      categories.filter(c =>
-        c.name.toLowerCase().includes(query.toLowerCase())
+      customers.filter(c =>
+        (c.name + ' ' + c.email + ' ' + c.phone + ' ' + c.address + ' ' + c.status)
+          .toLowerCase()
+          .includes(query.toLowerCase())
       ),
+    [customers, query]
+  );
+
+  const filteredCategories = useMemo(
+    () => categories.filter(c => c.name.toLowerCase().includes(query.toLowerCase())),
     [categories, query]
   );
 
-  const handleAddProduct = (newProd: {
-    name: string;
-    sku: string;
-    category: string;
-    price: number;
-    stock: number;
-    status: 'Active' | 'Low stock' | 'Draft';
-    image: string;
-  }) => {
-    const productItem: Product = {
-      id: Date.now(),
-      ...newProd,
-      emoji: '📦',
-    };
-    setProducts([productItem, ...products]);
-    setNotice(`Product "${newProd.name}" added successfully with photo!`);
+  // Product Add / Edit Handler
+  const handleSaveProduct = (prodData: ProductFormData) => {
+    if (prodData.id) {
+      // Edit existing product
+      setProducts(prev =>
+        prev.map(p =>
+          p.id === prodData.id
+            ? {
+                ...p,
+                name: prodData.name,
+                sku: prodData.sku || p.sku,
+                category: prodData.category,
+                price: prodData.price,
+                discountPercent: prodData.discountPercent || 0,
+                discountedPrice: prodData.discountedPrice || prodData.price,
+                stock: prodData.stock,
+                status: prodData.status,
+                image: prodData.image || p.image,
+              }
+            : p
+        )
+      );
+      setNotice(`Product "${prodData.name}" updated successfully!`);
+    } else {
+      // Add new product
+      const newProduct: Product = {
+        id: Date.now(),
+        name: prodData.name,
+        sku: prodData.sku || 'SKU-' + Math.floor(1000 + Math.random() * 9000),
+        category: prodData.category,
+        price: prodData.price,
+        discountPercent: prodData.discountPercent || 0,
+        discountedPrice: prodData.discountedPrice || prodData.price,
+        stock: prodData.stock,
+        status: prodData.status,
+        image: prodData.image,
+        emoji: '📦',
+      };
+      setProducts([newProduct, ...products]);
+      setNotice(`Product "${newProduct.name}" added successfully!`);
+    }
+    setEditingProduct(null);
   };
 
-  const handleAddCategory = (newCat: {
-    name: string;
-    count: string;
-    image: string;
-  }) => {
+  const handleEditProductClick = (product: Product) => {
+    setEditingProduct({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      category: product.category,
+      price: product.price,
+      discountPercent: product.discountPercent,
+      discountedPrice: product.discountedPrice,
+      stock: product.stock,
+      status: product.status,
+      image: product.image || '',
+    });
+    setShowAddProduct(true);
+  };
+
+  // Category Add / Delete Handlers
+  const handleAddCategory = (newCat: { name: string; count: string; image: string }) => {
     const categoryItem: CategoryItem = {
       id: Date.now(),
       name: newCat.name,
@@ -273,6 +457,24 @@ export default function Home() {
     setNotice('Category removed.');
   };
 
+  // Customer Add / Edit / Delete Handlers
+  const handleSaveCustomer = (custData: CustomerData) => {
+    const exists = customers.some(c => c.id === custData.id);
+    if (exists) {
+      setCustomers(customers.map(c => (c.id === custData.id ? custData : c)));
+      setNotice(`Customer "${custData.name}" details updated successfully!`);
+    } else {
+      setCustomers([custData, ...customers]);
+      setNotice(`Customer "${custData.name}" added to directory!`);
+    }
+    setEditingCustomer(null);
+  };
+
+  const handleDeleteCustomer = (id: number) => {
+    setCustomers(customers.filter(c => c.id !== id));
+    setNotice('Customer profile removed.');
+  };
+
   function updateOrder(id: string, status: Order['status']) {
     setOrders(orders.map(o => (o.id === id ? { ...o, status } : o)));
     setNotice(`${id} marked ${status.toLowerCase()}.`);
@@ -280,8 +482,18 @@ export default function Home() {
 
   function exportOrders() {
     const csv = [
-      'Order,Customer,Date,Total,Status',
-      ...orders.map(o => [o.id, o.customer, o.date, o.total, o.status].join(',')),
+      'Order ID,Customer,Phone,Shipping Address,Date,Total,Status',
+      ...orders.map(o =>
+        [
+          o.id,
+          `"${o.customer}"`,
+          `"${o.phone}"`,
+          `"${o.address.replace(/"/g, '""')}"`,
+          `"${o.date}"`,
+          o.total,
+          o.status,
+        ].join(',')
+      ),
     ].join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -310,7 +522,11 @@ export default function Home() {
             <b>ShopMate</b>
             <small>ADMIN CONSOLE</small>
           </div>
-          <button className="mobile-close" onClick={() => setMobile(false)} aria-label="Close sidebar">
+          <button
+            className="mobile-close"
+            onClick={() => setMobile(false)}
+            aria-label="Close sidebar"
+          >
             <X size={18} />
           </button>
         </div>
@@ -340,6 +556,7 @@ export default function Home() {
               <span>{n.name}</span>
               {n.name === 'Orders' && <em>{orders.length}</em>}
               {n.name === 'Products' && <em>{products.length}</em>}
+              {n.name === 'Customers' && <em>{customers.length}</em>}
             </button>
           ))}
         </nav>
@@ -431,10 +648,11 @@ export default function Home() {
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search products, orders, categories..."
+                placeholder="Search products, orders, customers..."
               />
               <kbd>⌘ K</kbd>
             </div>
+
             <button
               type="button"
               className="btn secondary payment-top-btn"
@@ -484,26 +702,45 @@ export default function Home() {
           <div className="page-heading">
             <div>
               <div className="eyebrow">SATURDAY, NOVEMBER 14, 2026</div>
-              <h1>{section === 'Overview' ? `Good morning, ${user.name.split(' ')[0]} 👋` : section}</h1>
+              <h1>
+                {section === 'Overview' ? `Good morning, ${user.name.split(' ')[0]} 👋` : section}
+              </h1>
               <p>
                 {section === 'Overview'
                   ? "Here's what's happening with your store today."
-                  : `Manage your store ${section.toLowerCase()} with live photo updates.`}
+                  : section === 'Orders'
+                  ? 'Manage customer orders, addresses, and contact phone numbers.'
+                  : section === 'Products'
+                  ? 'Manage product catalogue, edit pricing, discounts and photos.'
+                  : section === 'Customers'
+                  ? 'View and update complete customer profiles and addresses.'
+                  : `Manage your store ${section.toLowerCase()} from one place.`}
               </p>
             </div>
             <div className="heading-actions">
               <button className="btn secondary" onClick={exportOrders}>
-                <Download size={16} /> Export
+                <Download size={16} /> Export CSV
               </button>
               {section === 'Categories' ? (
                 <button className="btn primary" onClick={() => setShowAddCategory(true)}>
                   <Plus size={17} /> Add category
+                </button>
+              ) : section === 'Customers' ? (
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setEditingCustomer(null);
+                    setShowCustomerModal(true);
+                  }}
+                >
+                  <Plus size={17} /> Add customer
                 </button>
               ) : (
                 <button
                   className="btn primary"
                   onClick={() => {
                     setSection('Products');
+                    setEditingProduct(null);
                     setShowAddProduct(true);
                   }}
                 >
@@ -530,7 +767,7 @@ export default function Home() {
                 <Stat title="Total revenue" value="$24,580.00" change="12.8%" up />
                 <Stat title="Total orders" value={String(orders.length + 1243)} change="8.2%" up />
                 <Stat title="Products" value={String(products.length)} change="4.5%" up />
-                <Stat title="Customers" value="892" change="2.4%" up={false} />
+                <Stat title="Customers" value={String(customers.length)} change="2.4%" up={false} />
               </div>
 
               <div className="dashboard-grid">
@@ -569,7 +806,11 @@ export default function Home() {
                         <i />
                         <i />
                       </div>
-                      <svg viewBox="0 0 700 210" preserveAspectRatio="none" aria-label="Revenue trend chart">
+                      <svg
+                        viewBox="0 0 700 210"
+                        preserveAspectRatio="none"
+                        aria-label="Revenue trend chart"
+                      >
                         <defs>
                           <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#6b5ce7" stopOpacity=".22" />
@@ -628,7 +869,7 @@ export default function Home() {
               <section className="panel orders-panel">
                 <div className="panel-head">
                   <div>
-                    <h2>Recent orders</h2>
+                    <h2>Recent orders (with address & phone)</h2>
                     <p>You have {orders.length} recent orders</p>
                   </div>
                   <button className="text-btn" onClick={() => setSection('Orders')}>
@@ -641,14 +882,18 @@ export default function Home() {
               <section className="panel products-panel">
                 <div className="panel-head">
                   <div>
-                    <h2>Top products with photos</h2>
+                    <h2>Top products & pricing discounts</h2>
                     <p>Your most popular catalogue items</p>
                   </div>
                   <button className="text-btn" onClick={() => setSection('Products')}>
                     Manage products →
                   </button>
                 </div>
-                <ProductTable products={products.slice(0, 4)} setProducts={setProducts} />
+                <ProductTable
+                  products={products.slice(0, 4)}
+                  setProducts={setProducts}
+                  onEditProduct={handleEditProductClick}
+                />
               </section>
             </>
           )}
@@ -658,14 +903,26 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>Product catalogue</h2>
-                  <p>{products.length} products with photo support</p>
+                  <h2>Product Catalogue</h2>
+                  <p>
+                    {products.length} products · Support for photos, price, discounts & live editing
+                  </p>
                 </div>
-                <button className="btn primary" onClick={() => setShowAddProduct(true)}>
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setShowAddProduct(true);
+                  }}
+                >
                   <Plus size={16} /> Add product
                 </button>
               </div>
-              <ProductTable products={filteredProducts} setProducts={setProducts} />
+              <ProductTable
+                products={filteredProducts}
+                setProducts={setProducts}
+                onEditProduct={handleEditProductClick}
+              />
             </section>
           )}
 
@@ -674,8 +931,8 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>All orders</h2>
-                  <p>Review and update customer orders</p>
+                  <h2>Customer Orders with Addresses & Contact Phone</h2>
+                  <p>Review customer shipping addresses, phone numbers, and delivery progress</p>
                 </div>
                 <button className="btn secondary" onClick={exportOrders}>
                   <Download size={16} /> Export CSV
@@ -690,34 +947,129 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>Customers</h2>
-                  <p>Customer directory · sample data</p>
+                  <h2>Customer Directory & Information Management</h2>
+                  <p>
+                    {customers.length} registered customers · Update contact info, phone, and delivery addresses
+                  </p>
                 </div>
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setEditingCustomer(null);
+                    setShowCustomerModal(true);
+                  }}
+                >
+                  <Plus size={16} /> Add customer
+                </button>
               </div>
-              <div className="customer-list">
-                {[
-                  'Olivia Martin',
-                  'Noah Williams',
-                  'Emma Brown',
-                  'Liam Davis',
-                  'Ava Wilson',
-                  'Sophia Taylor',
-                ].map((n, i) => (
-                  <div className="customer" key={n}>
-                    <div className="avatar">
-                      {n
-                        .split(' ')
-                        .map(x => x[0])
-                        .join('')}
-                    </div>
-                    <div>
-                      <b>{n}</b>
-                      <small>{n.toLowerCase().replace(' ', '.')}@example.com</small>
-                    </div>
-                    <span>{[12, 8, 5, 3, 9, 2][i]} orders</span>
-                    <b>{money([482, 329, 216, 134, 391, 88][i])}</b>
-                  </div>
-                ))}
+
+              {/* Enhanced Customer Table / Cards */}
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>CUSTOMER</th>
+                      <th>PHONE</th>
+                      <th>DELIVERY ADDRESS</th>
+                      <th>ORDERS</th>
+                      <th>TOTAL SPENT</th>
+                      <th>STATUS</th>
+                      <th>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCustomers.map(cust => (
+                      <tr key={cust.id}>
+                        <td>
+                          <div className="product-cell">
+                            <div className="avatar" style={{ flexShrink: 0 }}>
+                              {cust.avatar}
+                            </div>
+                            <div>
+                              <b>{cust.name}</b>
+                              <small style={{ display: 'block', color: '#85859a', fontSize: '11px' }}>
+                                {cust.email}
+                              </small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <a
+                            href={`tel:${cust.phone}`}
+                            style={{
+                              color: 'inherit',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <Phone size={13} color="#6b5ce7" />
+                            {cust.phone}
+                          </a>
+                        </td>
+                        <td style={{ maxWidth: '240px', whiteSpace: 'normal' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '5px' }}>
+                            <MapPin size={14} color="#e17d70" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span style={{ fontSize: '11px', color: '#555' }}>{cust.address}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <b>{cust.ordersCount}</b> orders
+                        </td>
+                        <td>
+                          <b>{money(cust.totalSpent)}</b>
+                        </td>
+                        <td>
+                          <span
+                            className={`status ${
+                              cust.status === 'VIP'
+                                ? 'green'
+                                : cust.status === 'Active'
+                                ? 'blue'
+                                : 'gray'
+                            }`}
+                          >
+                            {cust.status === 'VIP' ? '⭐ VIP' : cust.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              className="btn secondary"
+                              style={{
+                                height: '28px',
+                                padding: '0 8px',
+                                fontSize: '11px',
+                                gap: '4px',
+                              }}
+                              onClick={() => {
+                                setEditingCustomer(cust);
+                                setShowCustomerModal(true);
+                              }}
+                              title="Update customer information"
+                            >
+                              <Pencil size={12} /> Edit Info
+                            </button>
+                            <button
+                              type="button"
+                              className="row-action"
+                              title="Delete customer"
+                              onClick={() => handleDeleteCustomer(cust.id)}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredCustomers.length === 0 && (
+                  <div className="empty">No customers found matching your search.</div>
+                )}
               </div>
             </section>
           )}
@@ -823,7 +1175,10 @@ export default function Home() {
                     <option>UTC</option>
                   </select>
                 </label>
-                <button className="btn primary" onClick={() => setNotice('Settings saved locally for this demo.')}>
+                <button
+                  className="btn primary"
+                  onClick={() => setNotice('Settings saved locally for this demo.')}
+                >
                   Save changes
                 </button>
               </div>
@@ -847,7 +1202,14 @@ export default function Home() {
                     background: '#fcfbfe',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                    }}
+                  >
                     <div
                       style={{
                         width: '32px',
@@ -889,7 +1251,14 @@ export default function Home() {
                     background: '#f9fefe',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                    }}
+                  >
                     <div
                       style={{
                         width: '32px',
@@ -905,7 +1274,14 @@ export default function Home() {
                     </div>
                     <div>
                       <b style={{ fontSize: '13px' }}>Customer Support Desk</b>
-                      <small style={{ color: '#22966b', display: 'block', fontSize: '10px', fontWeight: 700 }}>
+                      <small
+                        style={{
+                          color: '#22966b',
+                          display: 'block',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                        }}
+                      >
                         ● 24/7 Live Assistance
                       </small>
                     </div>
@@ -932,19 +1308,34 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Add Product Modal with Photo Upload */}
+      {/* Add / Edit Product Modal */}
       <AddProductModal
         isOpen={showAddProduct}
-        onClose={() => setShowAddProduct(false)}
+        onClose={() => {
+          setShowAddProduct(false);
+          setEditingProduct(null);
+        }}
         categories={categories}
-        onAddProduct={handleAddProduct}
+        initialData={editingProduct}
+        onSaveProduct={handleSaveProduct}
       />
 
-      {/* Add Category Modal with Photo Upload */}
+      {/* Add Category Modal */}
       <AddCategoryModal
         isOpen={showAddCategory}
         onClose={() => setShowAddCategory(false)}
         onAddCategory={handleAddCategory}
+      />
+
+      {/* Customer Modal (Add & Edit) */}
+      <CustomerModal
+        isOpen={showCustomerModal}
+        onClose={() => {
+          setShowCustomerModal(false);
+          setEditingCustomer(null);
+        }}
+        initialData={editingCustomer}
+        onSaveCustomer={handleSaveCustomer}
       />
 
       {/* Customer Support Modal */}
@@ -1006,9 +1397,11 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
 function ProductTable({
   products,
   setProducts,
+  onEditProduct,
 }: {
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  onEditProduct: (p: Product) => void;
 }) {
   return (
     <div className="table-wrap">
@@ -1018,60 +1411,106 @@ function ProductTable({
             <th>PRODUCT</th>
             <th>SKU</th>
             <th>CATEGORY</th>
-            <th>PRICE</th>
+            <th>PRICE & DISCOUNT</th>
             <th>STOCK</th>
             <th>STATUS</th>
-            <th />
+            <th>ACTIONS</th>
           </tr>
         </thead>
         <tbody>
-          {products.map(p => (
-            <tr key={p.id}>
-              <td>
-                <div className="product-cell">
-                  <div className="product-thumb">
-                    {p.image ? (
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="product-img"
-                        onError={e => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <span>{p.emoji || '📦'}</span>
+          {products.map(p => {
+            const hasDiscount = (p.discountPercent || 0) > 0;
+            const salePrice = p.discountedPrice || (hasDiscount ? p.price * (1 - (p.discountPercent || 0) / 100) : p.price);
+
+            return (
+              <tr key={p.id}>
+                <td>
+                  <div className="product-cell">
+                    <div className="product-thumb">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="product-img"
+                          onError={e => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <span>{p.emoji || '📦'}</span>
+                      )}
+                    </div>
+                    <b>{p.name}</b>
+                  </div>
+                </td>
+                <td className="muted">{p.sku}</td>
+                <td>{p.category}</td>
+                <td>
+                  <div>
+                    <b style={{ color: hasDiscount ? '#1b7d56' : '#202033' }}>
+                      {money(salePrice)}
+                    </b>
+                    {hasDiscount && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span
+                          style={{
+                            textDecoration: 'line-through',
+                            color: '#9998aa',
+                            fontSize: '11px',
+                          }}
+                        >
+                          {money(p.price)}
+                        </span>
+                        <span
+                          style={{
+                            background: '#e3f7ed',
+                            color: '#1b7d56',
+                            fontWeight: 700,
+                            fontSize: '9px',
+                            padding: '1px 5px',
+                            borderRadius: '8px',
+                          }}
+                        >
+                          -{p.discountPercent}%
+                        </span>
+                      </div>
                     )}
                   </div>
-                  <b>{p.name}</b>
-                </div>
-              </td>
-              <td className="muted">{p.sku}</td>
-              <td>{p.category}</td>
-              <td>
-                <b>{money(p.price)}</b>
-              </td>
-              <td>{p.stock}</td>
-              <td>
-                <span
-                  className={`status ${
-                    p.status === 'Active' ? 'green' : p.status === 'Low stock' ? 'orange' : 'gray'
-                  }`}
-                >
-                  {p.status}
-                </span>
-              </td>
-              <td>
-                <button
-                  className="row-action"
-                  title="Remove product"
-                  onClick={() => setProducts(old => old.filter(x => x.id !== p.id))}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td>{p.stock}</td>
+                <td>
+                  <span
+                    className={`status ${
+                      p.status === 'Active' ? 'green' : p.status === 'Low stock' ? 'orange' : 'gray'
+                    }`}
+                  >
+                    {p.status}
+                  </span>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="row-action"
+                      title="Edit product"
+                      onClick={() => onEditProduct(p)}
+                      style={{ color: '#6b5ce7' }}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="row-action"
+                      title="Remove product"
+                      onClick={() => setProducts(old => old.filter(x => x.id !== p.id))}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {products.length === 0 && <div className="empty">No products match your search.</div>}
@@ -1093,6 +1532,8 @@ function OrderTable({
           <tr>
             <th>ORDER</th>
             <th>CUSTOMER</th>
+            <th>PHONE</th>
+            <th>SHIPPING ADDRESS</th>
             <th>DATE</th>
             <th>TOTAL</th>
             <th>STATUS</th>
@@ -1105,7 +1546,31 @@ function OrderTable({
               <td>
                 <b>{o.id}</b>
               </td>
-              <td>{o.customer}</td>
+              <td>
+                <b>{o.customer}</b>
+              </td>
+              <td>
+                <a
+                  href={`tel:${o.phone}`}
+                  style={{
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Phone size={12} color="#6b5ce7" />
+                  {o.phone}
+                </a>
+              </td>
+              <td style={{ maxWidth: '250px', whiteSpace: 'normal' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                  <MapPin size={13} color="#e17d70" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span style={{ fontSize: '11px', color: '#555' }}>{o.address}</span>
+                </div>
+              </td>
               <td className="muted">{o.date}</td>
               <td>
                 <b>{money(o.total)}</b>

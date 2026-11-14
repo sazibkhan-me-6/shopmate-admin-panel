@@ -1,8 +1,28 @@
 # ShopMate Admin Panel 🛍️
 
-A modern, responsive e-commerce admin control panel built with **Next.js 14 (App Router)**, **TypeScript**, **React 18**, and **Lucide Icons**. Designed to manage products with photo uploads, visual categories, monitor sales performance, track orders, configure payment methods, provide customer support, and authenticate store administrators seamlessly.
+A modern, responsive e-commerce admin control panel built with **Next.js 14 (App Router)**, **TypeScript**, **React 18**, and **Lucide Icons**. Designed to manage products with photo uploads, price discount controls, product editing, customer profiles with address & phone updates, order delivery tracking with shipping info, payment gateway toggles, and 24/7 customer support.
 
 ## ✨ Features
+
+- **📑 Order Tracking with Phone & Shipping Address:**
+  - View each order's customer name, **direct contact phone number**, and **complete delivery address**.
+  - Live status tracking (`Processing`, `Shipped`, `Delivered`, `Cancelled`).
+  - Search orders by ID, customer name, phone number, or delivery address.
+  - Enhanced CSV export (`shopmate-orders.csv`) including Customer Phone and Full Address.
+
+- **🏷️ Product Pricing, Discounts & Full Editing System:**
+  - **Regular Price & Discount Rate (%)**: Set regular price and discount percentage with instant live preview of the final selling price.
+  - **Discount Badges**: Struck-through original price and green discount percentage tag (e.g. `-15% OFF`).
+  - **Product Editing**: Click the Edit icon on any product to update name, category, SKU, regular price, discount %, stock, status, or photo.
+  - **Photo Upload**: Local image upload (with instant FileReader preview) or direct image URL, plus quick sample preset photos.
+  - Live stock status badges (`Active`, `Low stock`, `Draft`).
+
+- **👥 Customer Directory & Information Update:**
+  - Registered customer profiles with avatar, email, direct phone number, and delivery address.
+  - Order frequency and total lifetime spent tracking.
+  - Account status tags (`VIP`, `Active`, `Inactive`).
+  - **Update Customer Information**: Edit modal to update name, email, phone number, shipping address, and VIP status.
+  - **Add New Customer**: Fast customer registration modal.
 
 - **💳 Payment Method Control System:**
   - One-click control buttons in the topbar, sidebar, and store settings.
@@ -24,49 +44,29 @@ A modern, responsive e-commerce admin control panel built with **Next.js 14 (App
   - **Support Ticket System**: Submit categorized tickets (Payment Gateway, Orders & Shipping, Catalogue, Account) with priority levels (Urgent, High, Normal) and auto-generated ticket IDs (`#TKT-XXXX`).
   - **Knowledgebase / FAQs**: Instant answers to common store configuration questions.
 
-- **🔐 Administrator Login System:**
-  - Secure authentication flow with session persistence via `localStorage`.
-  - Password visibility toggle (Show/Hide).
-  - Quick 1-Click Demo Login (`admin@shopmate.com` / `admin123`).
-  - Session logout controls in both the sidebar profile area and the topbar.
-
-- **📸 Photo-Enabled Product Management:**
-  - Full product catalogue with live search filtering by name, SKU, and category.
-  - **Add Product Modal with Photo Support**:
-    - Local file upload with instant client-side preview via FileReader.
-    - Image URL input mode.
-    - 1-Click preset demo photos (Backpack, Headphones, Sneakers, Smartwatch, Coffee Cup, Lamp).
-    - Image preview box with remove/change option.
-  - Live stock status badges (`Active`, `Low stock`, `Draft`).
-  - Delete / remove catalogue items.
-
 - **🏷️ Visual Category Management with Cover Photos:**
   - Visual category grid displaying category cover images, titles, and item counts.
   - **Add Category Modal with Photo Support**:
     - Category name, product count, and photo upload / URL.
     - Category cover presets for fast setup.
   - Delete categories directly from the dashboard.
-  - Newly created categories are automatically available when adding new products.
+  - Newly created categories are automatically available when adding or editing products.
+
+- **🔐 Administrator Login System:**
+  - Secure authentication flow with session persistence via `localStorage`.
+  - Password visibility toggle (Show/Hide).
+  - Quick 1-Click Demo Login (`admin@shopmate.com` / `admin123`).
+  - Session logout controls in both the sidebar profile area and the topbar.
 
 - **📊 Comprehensive Dashboard Overview:**
   - KPI metric cards (Total Revenue, Total Orders, Active Products, Customers) with trends.
   - Interactive revenue chart with period filters (7 days, 30 days, 12 months).
   - Sales by channel breakdown (Online store, Social media, Direct).
-  - Quick access to recent orders and top products with photos.
+  - Quick access to recent orders with shipping phone & address, and top products with photos.
 
-- **📑 Order Tracking:**
-  - Live order search and status management (`Processing`, `Shipped`, `Delivered`, `Cancelled`).
-  - One-click CSV export of order data (`shopmate-orders.csv`).
-
-- **👥 Customer Directory:**
-  - Customer overview with order count, total spend, and contact emails.
-
-- **📈 Store Analytics:**
+- **📈 Store Analytics & Settings:**
   - Key business health metrics: Conversion Rate, Average Order Value (AOV), Returning Customer Rate, and Refund Rate.
-
-- **⚙️ Store Settings:**
   - Store configuration controls (Store Name, Support Email, Currency, Timezone).
-  - Quick panels for Payment Gateways and Customer Support.
 
 - **📱 Fully Responsive Design:**
   - Mobile slide-out navigation with overlay scrim.
@@ -121,7 +121,8 @@ shopmate-admin-panel/
 │   └── page.tsx                    # Dashboard & authentication state orchestrator
 ├── components/
 │   ├── LoginScreen.tsx             # Login authentication view & credentials handler
-│   ├── AddProductModal.tsx         # Modal for adding products with photo upload & preview
+│   ├── AddProductModal.tsx         # Modal for adding & editing products with discount & photos
+│   ├── CustomerModal.tsx           # Modal for updating customer info, address & phone
 │   ├── AddCategoryModal.tsx        # Modal for adding categories with cover photos
 │   ├── CustomerSupportModal.tsx    # Customer support desk, ticket submission & FAQs
 │   └── PaymentMethodsModal.tsx     # Payment method control (bKash, Nagad, Cards, COD)

@@ -1,25 +1,31 @@
 'use client';
-import { useState, useRef } from 'react';
-import { X, Upload, Image as ImageIcon, Sparkles, Check } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Upload, Sparkles, Check, Tag, DollarSign, Percent } from 'lucide-react';
 
 interface CategoryOption {
   id: number;
   name: string;
 }
 
+export interface ProductFormData {
+  id?: number;
+  name: string;
+  sku?: string;
+  category: string;
+  price: number;
+  discountPercent?: number;
+  discountedPrice?: number;
+  stock: number;
+  status: 'Active' | 'Low stock' | 'Draft';
+  image: string;
+}
+
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   categories: CategoryOption[];
-  onAddProduct: (product: {
-    name: string;
-    sku: string;
-    category: string;
-    price: number;
-    stock: number;
-    status: 'Active' | 'Low stock' | 'Draft';
-    image: string;
-  }) => void;
+  initialData?: ProductFormData | null;
+  onSaveProduct: (product: ProductFormData) => void;
 }
 
 const PRESET_PRODUCT_IMAGES = [
@@ -35,18 +41,53 @@ export default function AddProductModal({
   isOpen,
   onClose,
   categories,
-  onAddProduct,
+  initialData,
+  onSaveProduct,
 }: AddProductModalProps) {
+  const isEditMode = !!initialData?.id;
+
   const [name, setName] = useState('');
+  const [sku, setSku] = useState('');
   const [category, setCategory] = useState(categories[0]?.name || 'Electronics');
   const [price, setPrice] = useState('');
+  const [discountPercent, setDiscountPercent] = useState('0');
   const [stock, setStock] = useState('10');
   const [status, setStatus] = useState<'Active' | 'Low stock' | 'Draft'>('Active');
   const [imageUrl, setImageUrl] = useState('');
   const [imageTab, setImageTab] = useState<'file' | 'url'>('file');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync state when modal opens or initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setSku(initialData.sku || '');
+      setCategory(initialData.category || categories[0]?.name || 'Electronics');
+      setPrice(initialData.price !== undefined ? String(initialData.price) : '');
+      setDiscountPercent(
+        initialData.discountPercent !== undefined ? String(initialData.discountPercent) : '0'
+      );
+      setStock(initialData.stock !== undefined ? String(initialData.stock) : '10');
+      setStatus(initialData.status || 'Active');
+      setImageUrl(initialData.image || '');
+    } else {
+      setName('');
+      setSku('');
+      setCategory(categories[0]?.name || 'Electronics');
+      setPrice('');
+      setDiscountPercent('0');
+      setStock('10');
+      setStatus('Active');
+      setImageUrl('');
+    }
+  }, [initialData, isOpen, categories]);
+
   if (!isOpen) return null;
+
+  const numPrice = parseFloat(price) || 0;
+  const numDiscount = Math.min(100, Math.max(0, parseFloat(discountPercent) || 0));
+  const finalPrice = numDiscount > 0 ? numPrice * (1 - numDiscount / 100) : numPrice;
+  const savings = numPrice - finalPrice;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,26 +110,25 @@ export default function AddProductModal({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const numPrice = parseFloat(price) || 0;
     const numStock = parseInt(stock, 10) || 0;
-    const determinedStatus = status || (numStock > 5 ? 'Active' : numStock > 0 ? 'Low stock' : 'Draft');
-    const randomSku = 'SKU-' + Math.floor(1000 + Math.random() * 9000);
+    const determinedStatus =
+      status || (numStock > 5 ? 'Active' : numStock > 0 ? 'Low stock' : 'Draft');
+    const assignedSku =
+      sku.trim() || initialData?.sku || 'SKU-' + Math.floor(1000 + Math.random() * 9000);
 
-    onAddProduct({
+    onSaveProduct({
+      id: initialData?.id,
       name: name.trim(),
-      sku: randomSku,
+      sku: assignedSku,
       category,
       price: numPrice,
+      discountPercent: numDiscount,
+      discountedPrice: parseFloat(finalPrice.toFixed(2)),
       stock: numStock,
       status: determinedStatus,
       image: imageUrl.trim(),
     });
 
-    // Reset and close
-    setName('');
-    setPrice('');
-    setStock('10');
-    setImageUrl('');
     onClose();
   };
 
@@ -97,8 +137,8 @@ export default function AddProductModal({
       <form className="modal modal-lg" onSubmit={handleSubmit} onClick={e => e.stopPropagation()}>
         <div className="panel-head">
           <div>
-            <h2>Add New Product</h2>
-            <p>Enter details and upload product photo</p>
+            <h2>{isEditMode ? 'Edit Product Details' : 'Add New Product'}</h2>
+            <p>{isEditMode ? 'Update product pricing, discount, stock & photos' : 'Enter details and upload product photo'}</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close modal">
             <X size={18} />
@@ -138,20 +178,93 @@ export default function AddProductModal({
           </label>
         </div>
 
-        {/* Price & Stock */}
+        {/* Price, Discount & Final Sale Price */}
         <div className="form-row">
           <label>
-            Price ($) *
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-              placeholder="49.99"
-            />
+            Regular Price ($) *
+            <div style={{ position: 'relative' }}>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                placeholder="49.99"
+                style={{ width: '100%' }}
+              />
+            </div>
           </label>
+
+          <label>
+            Discount (%)
+            <div style={{ position: 'relative' }}>
+              <input
+                type="number"
+                min="0"
+                max="99"
+                step="1"
+                value={discountPercent}
+                onChange={e => setDiscountPercent(e.target.value)}
+                placeholder="15"
+                style={{ width: '100%' }}
+              />
+            </div>
+          </label>
+        </div>
+
+        {/* Live Discount Calculation Banner */}
+        {numPrice > 0 && (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: numDiscount > 0 ? '#f0fbf5' : '#f8f8fb',
+              border: numDiscount > 0 ? '1px solid #c5edd7' : '1px solid #eeedf3',
+              marginBottom: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+            }}
+          >
+            <div>
+              <span style={{ color: '#666' }}>Final Selling Price: </span>
+              <strong style={{ fontSize: '15px', color: numDiscount > 0 ? '#1b7d56' : '#202033', marginLeft: '4px' }}>
+                ${finalPrice.toFixed(2)}
+              </strong>
+              {numDiscount > 0 && (
+                <span
+                  style={{
+                    textDecoration: 'line-through',
+                    color: '#9998aa',
+                    marginLeft: '8px',
+                    fontSize: '12px',
+                  }}
+                >
+                  ${numPrice.toFixed(2)}
+                </span>
+              )}
+            </div>
+            {numDiscount > 0 && (
+              <span
+                style={{
+                  background: '#e3f7ed',
+                  color: '#1b7d56',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  padding: '3px 8px',
+                  borderRadius: '12px',
+                }}
+              >
+                Save ${savings.toFixed(2)} ({numDiscount}% OFF)
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Stock & SKU */}
+        <div className="form-row">
           <label>
             Stock Quantity *
             <input
@@ -161,6 +274,14 @@ export default function AddProductModal({
               value={stock}
               onChange={e => setStock(e.target.value)}
               placeholder="25"
+            />
+          </label>
+          <label>
+            SKU Code
+            <input
+              value={sku}
+              onChange={e => setSku(e.target.value)}
+              placeholder="Auto-generated if empty"
             />
           </label>
         </div>
@@ -264,7 +385,7 @@ export default function AddProductModal({
             Cancel
           </button>
           <button className="btn primary" type="submit">
-            Save Product
+            {isEditMode ? 'Update Product' : 'Save Product'}
           </button>
         </div>
       </form>

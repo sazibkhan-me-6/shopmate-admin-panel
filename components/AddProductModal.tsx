@@ -134,7 +134,12 @@ export default function AddProductModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal modal-lg" onSubmit={handleSubmit} onClick={e => e.stopPropagation()}>
+      <form
+        className="modal modal-lg"
+        onSubmit={handleSubmit}
+        onClick={e => e.stopPropagation()}
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+      >
         <div className="panel-head">
           <div>
             <h2>{isEditMode ? 'Edit Product Details' : 'Add New Product'}</h2>
@@ -380,7 +385,19 @@ export default function AddProductModal({
           )}
         </div>
 
-        <div className="modal-actions">
+        <div
+          className="modal-actions"
+          style={{
+            position: 'sticky',
+            bottom: '-22px',
+            background: 'rgba(255, 255, 255, 0.96)',
+            backdropFilter: 'blur(8px)',
+            padding: '12px 0 0',
+            marginTop: '16px',
+            borderTop: '1px solid #eeedf3',
+            zIndex: 3,
+          }}
+        >
           <button type="button" className="btn secondary" onClick={onClose}>
             Cancel
           </button>

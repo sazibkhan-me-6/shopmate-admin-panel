@@ -89,7 +89,12 @@ export default function CustomerModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal modal-lg" onSubmit={handleSubmit} onClick={e => e.stopPropagation()}>
+      <form
+        className="modal modal-lg"
+        onSubmit={handleSubmit}
+        onClick={e => e.stopPropagation()}
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+      >
         <div className="panel-head">
           <div>
             <h2>{isEditMode ? 'Update Customer Information' : 'Add New Customer'}</h2>

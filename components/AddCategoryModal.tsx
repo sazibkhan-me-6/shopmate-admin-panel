@@ -76,7 +76,12 @@ export default function AddCategoryModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal modal-lg" onSubmit={handleSubmit} onClick={e => e.stopPropagation()}>
+      <form
+        className="modal modal-lg"
+        onSubmit={handleSubmit}
+        onClick={e => e.stopPropagation()}
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+      >
         <div className="panel-head">
           <div>
             <h2>Add New Category</h2>

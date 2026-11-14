@@ -188,3 +188,22 @@
     opacity: 1;
   }
 }
+
+
+/* Sidebar Storefront Connection Card filling gap after removing Need Help */
+.sidebar-store-card {
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 10px;
+  padding: 11px 11px;
+  margin-bottom: 14px;
+}
+.live-pulsing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22966b;
+  box-shadow: 0 0 0 2px rgba(34, 150, 107, 0.25);
+  display: inline-block;
+  flex-shrink: 0;
+}

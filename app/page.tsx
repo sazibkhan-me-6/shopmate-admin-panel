@@ -35,6 +35,10 @@ import {
   Radio,
   RefreshCw,
   CheckCircle2,
+  ArrowRight,
+  Edit3,
+  Star,
+  Filter,
 } from 'lucide-react';
 
 import LoginScreen, { UserProfile } from '../components/LoginScreen';
@@ -226,48 +230,56 @@ const initialCategories: CategoryItem[] = [
     name: 'Electronics',
     count: '4 products',
     image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 2,
     name: 'Fashion',
     count: '2 products',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80',
+    image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 3,
     name: 'Home & Living',
     count: '1 product',
     image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 4,
     name: 'Beauty & Health',
     count: '1 product',
     image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 5,
     name: 'Sports & Fitness',
     count: '1 product',
     image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 6,
     name: 'Books',
     count: '1 product',
     image: 'https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 7,
     name: 'Toys & Games',
     count: '1 product',
     image: 'https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
   {
     id: 8,
     name: 'Accessories',
     count: '1 product',
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80',
+    featured: true,
   },
 ];
 
@@ -429,6 +441,10 @@ export default function Home() {
   const [editingProduct, setEditingProduct] = useState<ProductFormData | null>(null);
 
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [activeCategoryProductFilter, setActiveCategoryProductFilter] = useState<string | null>(null);
+  const [categoryFilterTab, setCategoryFilterTab] = useState<'all' | 'featured'>('all');
+  const [categoryViewLayout, setCategoryViewLayout] = useState<'showcase' | 'grid'>('showcase');
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerData | null>(null);
@@ -450,6 +466,23 @@ export default function Home() {
       setIsAuthReady(true);
     }
   }, []);
+
+  // Load saved categories from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedCats = localStorage.getItem('shopmate_categories');
+      if (savedCats) {
+        setCategories(JSON.parse(savedCats));
+      }
+    } catch (e) {}
+  }, []);
+
+  // Sync categories to localStorage whenever updated
+  useEffect(() => {
+    try {
+      localStorage.setItem('shopmate_categories', JSON.stringify(categories));
+    } catch (e) {}
+  }, [categories]);
 
   // Real-time synchronization with incoming orders from the website
   useEffect(() => {
@@ -528,8 +561,15 @@ export default function Home() {
   );
 
   const filteredCategories = useMemo(
-    () => categories.filter(c => c.name.toLowerCase().includes(query.toLowerCase())),
-    [categories, query]
+    () =>
+      categories.filter(c => {
+        const matchesQuery = (c.name + ' ' + (c.count || '')).toLowerCase().includes(query.toLowerCase());
+        if (categoryFilterTab === 'featured') {
+          return matchesQuery && c.featured !== false;
+        }
+        return matchesQuery;
+      }),
+    [categories, query, categoryFilterTab]
   );
 
   // Product Add / Edit Handler
@@ -590,21 +630,74 @@ export default function Home() {
     setShowAddProduct(true);
   };
 
-  // Category Add / Delete Handlers
-  const handleAddCategory = (newCat: { name: string; count: string; image: string }) => {
-    const categoryItem: CategoryItem = {
-      id: Date.now(),
-      name: newCat.name,
-      count: newCat.count,
-      image: newCat.image,
-    };
-    setCategories([categoryItem, ...categories]);
-    setNotice(`Category "${newCat.name}" added for storefront!`);
+  // Category Add / Edit / Delete Handlers
+  const handleSaveCategory = (catData: {
+    id?: number;
+    name: string;
+    count: string;
+    image: string;
+    featured?: boolean;
+  }) => {
+    if (catData.id) {
+      setCategories(prev =>
+        prev.map(c =>
+          c.id === catData.id
+            ? {
+                ...c,
+                name: catData.name,
+                count: catData.count,
+                image: catData.image,
+                featured: catData.featured !== undefined ? catData.featured : c.featured,
+              }
+            : c
+        )
+      );
+      setNotice(`Category "${catData.name}" updated successfully!`);
+    } else {
+      const newCategory: CategoryItem = {
+        id: Date.now(),
+        name: catData.name,
+        count: catData.count,
+        image: catData.image,
+        featured: catData.featured !== undefined ? catData.featured : true,
+      };
+      setCategories(prev => [newCategory, ...prev]);
+      setNotice(`Category "${newCategory.name}" added to storefront catalogue!`);
+    }
+    setEditingCategory(null);
+  };
+
+  const handleEditCategoryClick = (cat: CategoryItem) => {
+    setEditingCategory(cat);
+    setShowAddCategory(true);
+  };
+
+  const handleToggleFeaturedCategory = (id: number) => {
+    setCategories(prev =>
+      prev.map(c => {
+        if (c.id === id) {
+          const nextFeatured = !c.featured;
+          setNotice(
+            nextFeatured
+              ? `"${c.name}" featured on storefront homepage strip!`
+              : `"${c.name}" removed from storefront featured strip.`
+          );
+          return { ...c, featured: nextFeatured };
+        }
+        return c;
+      })
+    );
   };
 
   const handleDeleteCategory = (id: number) => {
-    setCategories(categories.filter(c => c.id !== id));
-    setNotice('Category removed.');
+    const cat = categories.find(c => c.id === id);
+    if (confirm(`Are you sure you want to delete category "${cat?.name || 'this category'}"?`)) {
+      setCategories(prev => prev.filter(c => c.id !== id));
+      if (activeCategoryProductFilter === cat?.name) {
+        setActiveCategoryProductFilter(null);
+      }
+      setNotice('Category removed.');
+    }
   };
 
   // Customer Add / Edit / Delete Handlers
@@ -1003,7 +1096,13 @@ export default function Home() {
                 <Download size={16} /> Export CSV
               </button>
               {section === 'Categories' ? (
-                <button className="btn primary" onClick={() => setShowAddCategory(true)}>
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setShowAddCategory(true);
+                  }}
+                >
                   <Plus size={17} /> Add category
                 </button>
               ) : section === 'Customers' ? (
@@ -1357,49 +1456,458 @@ export default function Home() {
 
           {/* SECTION: Categories */}
           {section === 'Categories' && (
-            <section className="panel full-panel">
-              <div className="panel-head">
-                <div>
-                  <h2>Categories with Cover Photos ({categories.length} categories)</h2>
-                  <p>Organize your product catalogue with visual category images for the storefront</p>
-                </div>
-                <button className="btn primary" onClick={() => setShowAddCategory(true)}>
-                  <Plus size={16} /> Add category
-                </button>
-              </div>
-
-              <div className="category-grid">
-                {filteredCategories.map(cat => (
-                  <div className="category-card" key={cat.id}>
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      className="category-card-img"
-                      onError={e => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
+            <div style={{ display: 'grid', gap: '22px' }}>
+              {/* FEATURED CATEGORIES SHOWCASE (Exact Replica of Storefront Strip) */}
+              <section className="featured-showcase-panel">
+                <div className="featured-showcase-head">
+                  <div className="featured-showcase-title-box">
+                    <h2>Featured Categories</h2>
+                    <p>Shop by category and find exactly what you need.</p>
+                  </div>
+                  <div className="featured-showcase-actions">
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: '#10b981',
+                        background: '#ecfdf5',
+                        border: '1px solid #d1fae5',
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
                       }}
-                    />
-                    <div className="category-card-content">
-                      <div>
-                        <b>{cat.name}</b>
-                        <small>{cat.count}</small>
-                      </div>
-                      <button
-                        className="category-delete-btn"
-                        title="Delete category"
-                        onClick={() => handleDeleteCategory(cat.id)}
+                    >
+                      <span
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#10b981',
+                        }}
+                      />
+                      Live on shopmate-ecommerce-kohl.vercel.app
+                    </span>
+                    <a
+                      href="https://shopmate-ecommerce-kohl.vercel.app/categories"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="featured-view-all-link"
+                      title="View all categories on live store"
+                    >
+                      View All <ArrowRight size={14} />
+                    </a>
+                    <button
+                      className="btn primary"
+                      style={{ height: '36px', padding: '0 12px', fontSize: '12px' }}
+                      onClick={() => {
+                        setEditingCategory(null);
+                        setShowAddCategory(true);
+                      }}
+                    >
+                      <Plus size={15} /> Add Category
+                    </button>
+                  </div>
+                </div>
+
+                {/* 8 Featured Category Cards Grid (Matching the Screenshot) */}
+                <div className="featured-categories-strip">
+                  {categories
+                    .filter(c => c.featured !== false)
+                    .map(cat => {
+                      const isActive = activeCategoryProductFilter === cat.name;
+                      return (
+                        <div
+                          className={`featured-category-pill ${isActive ? 'active-filter' : ''}`}
+                          key={cat.id}
+                          onClick={() => {
+                            if (activeCategoryProductFilter === cat.name) {
+                              setActiveCategoryProductFilter(null);
+                            } else {
+                              setActiveCategoryProductFilter(cat.name);
+                            }
+                          }}
+                          title={`Click to filter products by ${cat.name}`}
+                        >
+                          <div className="featured-star-badge" title="Featured on Storefront Strip">
+                            <Star size={11} fill="#f59e0b" color="#f59e0b" />
+                          </div>
+
+                          <div className="featured-pill-img-wrap">
+                            <img
+                              src={cat.image}
+                              alt={cat.name}
+                              className="featured-pill-img"
+                              onError={e => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=500&q=80';
+                              }}
+                            />
+                          </div>
+
+                          <b className="featured-pill-name">{cat.name}</b>
+                          <small className="featured-pill-count">{cat.count}</small>
+
+                          {/* Quick Admin Hover Controls */}
+                          <div
+                            className="featured-pill-quick-actions"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              className="featured-pill-btn"
+                              title="Edit category"
+                              onClick={() => handleEditCategoryClick(cat)}
+                            >
+                              <Edit3 size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              className="featured-pill-btn"
+                              title="Toggle featured visibility"
+                              onClick={() => handleToggleFeaturedCategory(cat.id)}
+                            >
+                              <Star
+                                size={11}
+                                fill={cat.featured ? '#f59e0b' : 'none'}
+                                color="#f59e0b"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              className="featured-pill-btn delete"
+                              title="Delete category"
+                              onClick={() => handleDeleteCategory(cat.id)}
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </section>
+
+              {/* ACTIVE FILTER DRAWER (If admin clicked a category pill) */}
+              {activeCategoryProductFilter && (
+                <section
+                  className="panel full-panel"
+                  style={{
+                    background: '#f8f7ff',
+                    border: '1px solid #d9d5f7',
+                    padding: '18px 22px',
+                    borderRadius: '12px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '14px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                      <span
+                        style={{
+                          background: '#6b5ce7',
+                          color: '#fff',
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '6px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          fontSize: '13px',
+                        }}
                       >
-                        <Trash2 size={15} />
+                        🏷️
+                      </span>
+                      <div>
+                        <b style={{ fontSize: '14px', color: '#1e293b' }}>
+                          Products in Category: {activeCategoryProductFilter}
+                        </b>
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
+                          Showing products assigned to this category on the storefront
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        style={{ height: '30px', fontSize: '11px', padding: '0 10px' }}
+                        onClick={() => {
+                          setSection('Products');
+                          setQuery(activeCategoryProductFilter);
+                        }}
+                      >
+                        Open in Products View ↗
+                      </button>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        style={{ height: '30px', fontSize: '11px', padding: '0 10px' }}
+                        onClick={() => setActiveCategoryProductFilter(null)}
+                      >
+                        <X size={12} /> Clear Filter
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-              {filteredCategories.length === 0 && (
-                <div className="empty">No categories match your search.</div>
+
+                  {/* Filtered Products Horizontal Grid */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                      gap: '12px',
+                    }}
+                  >
+                    {products
+                      .filter(
+                        p =>
+                          p.category.toLowerCase() ===
+                          activeCategoryProductFilter.toLowerCase()
+                      )
+                      .map(p => (
+                        <div
+                          key={p.id}
+                          style={{
+                            background: '#fff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '10px',
+                            padding: '12px',
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '8px',
+                              objectFit: 'cover',
+                              background: '#f1f5f9',
+                              flexShrink: 0,
+                            }}
+                            onError={e => {
+                              (e.target as HTMLImageElement).src =
+                                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=500&q=80';
+                            }}
+                          />
+                          <div style={{ overflow: 'hidden', flex: 1 }}>
+                            <b
+                              style={{
+                                display: 'block',
+                                fontSize: '12px',
+                                color: '#1e293b',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {p.name}
+                            </b>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                marginTop: '3px',
+                              }}
+                            >
+                              <strong style={{ fontSize: '12px', color: '#6b5ce7' }}>
+                                ${p.discountedPrice || p.price}
+                              </strong>
+                              {p.discountPercent ? (
+                                <span
+                                  style={{
+                                    fontSize: '9px',
+                                    color: '#10b981',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  -{p.discountPercent}%
+                                </span>
+                              ) : null}
+                            </div>
+                            <small
+                              style={{
+                                fontSize: '10px',
+                                color: '#64748b',
+                                display: 'block',
+                                marginTop: '2px',
+                              }}
+                            >
+                              Stock: {p.stock} units
+                            </small>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            style={{
+                              height: '28px',
+                              padding: '0 8px',
+                              fontSize: '11px',
+                              flexShrink: 0,
+                            }}
+                            onClick={() => handleEditProductClick(p)}
+                            title="Edit product"
+                          >
+                            <Pencil size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    {products.filter(
+                      p =>
+                        p.category.toLowerCase() ===
+                        activeCategoryProductFilter.toLowerCase()
+                    ).length === 0 && (
+                      <div
+                        style={{
+                          gridColumn: '1 / -1',
+                          padding: '16px',
+                          textAlign: 'center',
+                          color: '#64748b',
+                          fontSize: '12px',
+                          background: '#fff',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        No products are currently assigned to "{activeCategoryProductFilter}".
+                      </div>
+                    )}
+                  </div>
+                </section>
               )}
-            </section>
+
+              {/* CATEGORY DIRECTORY & MANAGEMENT PANEL */}
+              <section className="panel full-panel">
+                <div className="panel-head">
+                  <div>
+                    <h2>Category Directory & Photo Management</h2>
+                    <p>
+                      Organize categories, upload cover photos, and toggle storefront featured strip
+                      visibility ({categories.length} total categories)
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="tab-pills">
+                      <button
+                        type="button"
+                        className={`tab-pill ${categoryFilterTab === 'all' ? 'active' : ''}`}
+                        onClick={() => setCategoryFilterTab('all')}
+                      >
+                        All ({categories.length})
+                      </button>
+                      <button
+                        type="button"
+                        className={`tab-pill ${categoryFilterTab === 'featured' ? 'active' : ''}`}
+                        onClick={() => setCategoryFilterTab('featured')}
+                      >
+                        ★ Featured ({categories.filter(c => c.featured !== false).length})
+                      </button>
+                    </div>
+
+                    <button
+                      className="btn primary"
+                      onClick={() => {
+                        setEditingCategory(null);
+                        setShowAddCategory(true);
+                      }}
+                    >
+                      <Plus size={16} /> Add Category
+                    </button>
+                  </div>
+                </div>
+
+                {/* Category Grid */}
+                <div className="category-grid">
+                  {filteredCategories.map(cat => (
+                    <div className="category-card" key={cat.id}>
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={cat.image}
+                          alt={cat.name}
+                          className="category-card-img"
+                          onError={e => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleToggleFeaturedCategory(cat.id)}
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '8px',
+                            background: cat.featured ? '#6b5ce7' : 'rgba(255,255,255,0.9)',
+                            color: cat.featured ? '#fff' : '#64748b',
+                            border: 'none',
+                            borderRadius: '20px',
+                            padding: '4px 8px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                          }}
+                          title="Toggle featured status"
+                        >
+                          <Star
+                            size={11}
+                            fill={cat.featured ? '#fff' : 'none'}
+                            color={cat.featured ? '#fff' : '#64748b'}
+                          />
+                          {cat.featured ? 'Featured' : 'Standard'}
+                        </button>
+                      </div>
+
+                      <div className="category-card-content">
+                        <div>
+                          <b>{cat.name}</b>
+                          <small>{cat.count}</small>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            style={{
+                              height: '28px',
+                              padding: '0 8px',
+                              fontSize: '11px',
+                              gap: '4px',
+                            }}
+                            onClick={() => handleEditCategoryClick(cat)}
+                            title="Edit category"
+                          >
+                            <Pencil size={11} /> Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="category-delete-btn"
+                            title="Delete category"
+                            onClick={() => handleDeleteCategory(cat.id)}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {filteredCategories.length === 0 && (
+                  <div className="empty">No categories match your search or filter.</div>
+                )}
+              </section>
+            </div>
           )}
 
           {/* SECTION: Analytics */}
@@ -1643,11 +2151,15 @@ export default function Home() {
         onSaveProduct={handleSaveProduct}
       />
 
-      {/* Add Category Modal */}
+      {/* Add / Edit Category Modal */}
       <AddCategoryModal
         isOpen={showAddCategory}
-        onClose={() => setShowAddCategory(false)}
-        onAddCategory={handleAddCategory}
+        onClose={() => {
+          setShowAddCategory(false);
+          setEditingCategory(null);
+        }}
+        onSaveCategory={handleSaveCategory}
+        initialData={editingCategory}
       />
 
       {/* Customer Modal (Add & Edit) */}

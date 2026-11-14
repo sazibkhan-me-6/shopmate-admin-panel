@@ -64,13 +64,17 @@ This admin panel serves as the central command hub for the live customer-facing 
   - **Support Ticket System**: Submit categorized tickets (Payment Gateway, Orders & Shipping, Catalogue, Account) with priority levels (Urgent, High, Normal) and auto-generated ticket IDs (`#TKT-XXXX`).
   - **Knowledgebase / FAQs**: Instant answers to common store configuration questions.
 
-- **🏷️ Visual Category Management with Cover Photos:**
-  - Visual category grid displaying category cover images, titles, and item counts.
-  - **Add Category Modal with Photo Support**:
-    - Category name, product count, and photo upload / URL.
-    - Category cover presets for fast setup.
-  - Delete categories directly from the dashboard.
-  - Newly created categories are automatically available when adding or editing products.
+- **🏷️ Featured Categories Showcase & Full Category Management:**
+  - **Live Storefront Showcase Strip**: Exact replica of the "Featured Categories" strip from `shopmate-ecommerce-kohl.vercel.app` with `Shop by category and find exactly what you need.` heading, "View All →" link, and interactive 8-column card grid.
+  - **8 Aligned Category Presets**: Electronics (Laptop), Fashion (Streetwear sunglasses), Home & Living (Velvet sofa), Beauty & Health (Cosmetics & brushes), Sports & Fitness (Weights & athletic shoe), Books (Books on shelf), Toys & Games (Blue lego bricks), Accessories (Navy backpack).
+  - **Interactive Category Filtering**: Click any category pill to instantly view all products assigned to that category with direct price, discount %, stock, and edit controls.
+  - **Add & Edit Category Modal**:
+    - Update category name, subtitle / product count, and photo.
+    - Local file upload (FileReader preview with size check up to 5MB) or direct photo URL.
+    - 8 1-click official storefront presets.
+    - **Featured Toggle**: Control whether the category appears on the live storefront homepage strip (`shopmate-ecommerce-kohl.vercel.app`).
+    - Live storefront card preview before saving.
+  - **Persistent Storage**: Real-time sync with `localStorage` and `/api/store` REST API.
 
 - **🔐 Administrator Login System:**
   - Secure authentication flow with session persistence via `localStorage`.

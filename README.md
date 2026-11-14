@@ -1,6 +1,26 @@
 # ShopMate Admin Panel 🛍️
 
-A modern, responsive e-commerce admin control panel built with **Next.js 14 (App Router)**, **TypeScript**, **React 18**, and **Lucide Icons**. Designed to manage products with photo uploads, price discount controls, product editing, customer profiles with address & phone updates, order delivery tracking with shipping info, payment gateway toggles, and 24/7 customer support.
+A modern, responsive e-commerce admin control panel built with **Next.js 14 (App Router)**, **TypeScript**, **React 18**, and **Lucide Icons**. Directly controls and synchronizes with the live e-commerce website: [**https://shopmate-ecommerce-kohl.vercel.app/**](https://shopmate-ecommerce-kohl.vercel.app/). Designed to manage products with photo uploads, price discount controls, product editing, customer profiles with address & phone updates, order delivery tracking with shipping info, payment gateway toggles, live storefront announcement & coupon controls, and CORS-enabled REST APIs.
+
+## 🌐 Live Storefront Integration (`shopmate-ecommerce-kohl.vercel.app`)
+
+This admin panel serves as the central command hub for the live customer-facing store at [https://shopmate-ecommerce-kohl.vercel.app/](https://shopmate-ecommerce-kohl.vercel.app/):
+
+- **Storefront Control Center Modal**:
+  - Live Store Status toggle: Switch storefront between `Online (Live)` and `Maintenance Mode`.
+  - Top Announcement Banner editor: Customize promotional banner text (e.g. *"🎉 Flash Sale! Flat 15% OFF across all tech & fashion — Code: SHOPMATE15"*).
+  - Promo Coupons Manager: Control active discount coupon codes (`SAVE10`, `WELCOME20`, `SHOPMATE15`).
+  - Currency & Exchange Rate: Multi-currency control (USD, BDT, EUR, GBP) and live BDT conversion rate (default `1 USD = 120 BDT`).
+  - One-click Catalog Sync: Instantly sync all 12 products, 8 categories, and active gateways to the storefront schema.
+  - JSON Configuration Export: One-click copy or download of full store JSON config for deployment.
+- **Cross-Origin REST APIs (CORS Enabled)**:
+  - `GET /api/store` - Returns catalog items, categories, announcement banner, promo coupons, and active payment gateways.
+  - `POST /api/store` - Updates storefront configuration.
+  - `GET /api/orders` - Fetches submitted orders.
+  - `POST /api/orders` - Receives incoming checkout orders directly from `shopmate-ecommerce-kohl.vercel.app`.
+- **Aligned Catalog Data**:
+  - Preloaded with the live storefront's 12 products (`iPhone 15 Pro Max`, `Sony WH-1000XM5`, `Nike Air Force 1`, `Apple Watch Series 9`, `Under Armour Backpack`, `MacBook Air M3`, `Premium Cotton T-Shirt`, `Minimal Lounge Sofa`, `Everyday Skincare Set`, `Adjustable Dumbbell Set`, `The Creative Mind`, `Classic Teddy Bear`).
+  - Aligned 8 categories (`Electronics`, `Fashion`, `Home & Living`, `Beauty & Health`, `Sports & Fitness`, `Books`, `Toys & Games`, `Accessories`).
 
 ## ✨ Features
 
@@ -116,11 +136,15 @@ npm run dev
 ```
 shopmate-admin-panel/
 ├── app/
+│   ├── api/
+│   │   ├── orders/route.ts         # CORS REST API for receiving & listing store orders
+│   │   └── store/route.ts          # CORS REST API for syncing products, categories & banners
 │   ├── globals.css                 # Custom design system & responsive styling
 │   ├── layout.tsx                  # Root Next.js layout & metadata
-│   └── page.tsx                    # Dashboard & authentication state orchestrator
+│   └── page.tsx                    # Dashboard & storefront state orchestrator
 ├── components/
 │   ├── LoginScreen.tsx             # Login authentication view & credentials handler
+│   ├── StorefrontControlModal.tsx  # Storefront live controls, coupons & announcements
 │   ├── AddProductModal.tsx         # Modal for adding & editing products with discount & photos
 │   ├── CustomerModal.tsx           # Modal for updating customer info, address & phone
 │   ├── AddCategoryModal.tsx        # Modal for adding categories with cover photos

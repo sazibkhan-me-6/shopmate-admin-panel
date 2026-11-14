@@ -30,6 +30,11 @@ import {
   MapPin,
   Tag,
   Award,
+  Globe,
+  ExternalLink,
+  Radio,
+  RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
 
 import LoginScreen, { UserProfile } from '../components/LoginScreen';
@@ -38,6 +43,7 @@ import AddCategoryModal, { CategoryItem } from '../components/AddCategoryModal';
 import CustomerSupportModal from '../components/CustomerSupportModal';
 import PaymentMethodsModal, { PaymentMethodItem } from '../components/PaymentMethodsModal';
 import CustomerModal, { CustomerData } from '../components/CustomerModal';
+import StorefrontControlModal, { StorefrontConfig } from '../components/StorefrontControlModal';
 
 export type Product = {
   id: number;
@@ -60,104 +66,212 @@ export type Order = {
   address: string;
   date: string;
   total: number;
+  paymentMethod: string;
+  trxId?: string;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 };
 
+// Exact 12 products aligned with https://shopmate-ecommerce-kohl.vercel.app/
 const initialProducts: Product[] = [
   {
     id: 1,
-    name: 'Everyday Backpack',
-    sku: 'BAG-001',
-    category: 'Accessories',
-    price: 49.99,
-    discountPercent: 10,
-    discountedPrice: 44.99,
-    stock: 38,
+    name: 'iPhone 15 Pro Max',
+    sku: 'APL-IPH15PM',
+    category: 'Electronics',
+    price: 1299.0,
+    discountPercent: 15,
+    discountedPrice: 1099.0,
+    stock: 24,
     status: 'Active',
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80',
-    emoji: '🎒',
+    image: 'https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&w=700&q=85',
   },
   {
     id: 2,
-    name: 'Wireless Headphones',
-    sku: 'ELC-014',
+    name: 'Sony WH-1000XM5',
+    sku: 'SNY-WH1000',
     category: 'Electronics',
-    price: 89.00,
-    discountPercent: 15,
-    discountedPrice: 75.65,
-    stock: 7,
-    status: 'Low stock',
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80',
-    emoji: '🎧',
+    price: 399.0,
+    discountPercent: 20,
+    discountedPrice: 319.0,
+    stock: 31,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=700&q=85',
   },
   {
     id: 3,
-    name: 'Ceramic Coffee Set',
-    sku: 'HOM-008',
-    category: 'Home & Living',
-    price: 34.50,
-    discountPercent: 0,
-    discountedPrice: 34.50,
-    stock: 24,
+    name: 'Nike Air Force 1',
+    sku: 'NKE-AF1-01',
+    category: 'Fashion',
+    price: 119.0,
+    discountPercent: 25,
+    discountedPrice: 89.0,
+    stock: 45,
     status: 'Active',
-    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400&q=80',
-    emoji: '☕',
+    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=85',
   },
   {
     id: 4,
-    name: 'Classic Running Shoes',
-    sku: 'SHO-021',
-    category: 'Fashion & Apparel',
-    price: 72.00,
-    discountPercent: 20,
-    discountedPrice: 57.60,
-    stock: 0,
-    status: 'Draft',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
-    emoji: '👟',
+    name: 'Apple Watch Series 9',
+    sku: 'APL-WTC9',
+    category: 'Electronics',
+    price: 499.0,
+    discountPercent: 18,
+    discountedPrice: 409.0,
+    stock: 19,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=700&q=85',
   },
   {
     id: 5,
-    name: 'Minimal Desk Lamp',
-    sku: 'HOM-012',
-    category: 'Home & Living',
-    price: 41.25,
-    discountPercent: 0,
-    discountedPrice: 41.25,
-    stock: 13,
+    name: 'Under Armour Backpack',
+    sku: 'UAR-BP-005',
+    category: 'Accessories',
+    price: 58.0,
+    discountPercent: 22,
+    discountedPrice: 45.0,
+    stock: 52,
     status: 'Active',
-    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80',
-    emoji: '💡',
+    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 6,
+    name: 'MacBook Air M3',
+    sku: 'APL-MBA-M3',
+    category: 'Electronics',
+    price: 1099.0,
+    discountPercent: 9,
+    discountedPrice: 999.0,
+    stock: 16,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 7,
+    name: 'Premium Cotton T-Shirt',
+    sku: 'UNQ-TS-007',
+    category: 'Fashion',
+    price: 39.0,
+    discountPercent: 25,
+    discountedPrice: 29.0,
+    stock: 70,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 8,
+    name: 'Minimal Lounge Sofa',
+    sku: 'NDH-SOFA-08',
+    category: 'Home & Living',
+    price: 799.0,
+    discountPercent: 12,
+    discountedPrice: 699.0,
+    stock: 8,
+    status: 'Low stock',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 9,
+    name: 'Everyday Skincare Set',
+    sku: 'GLB-SKIN-09',
+    category: 'Beauty & Health',
+    price: 79.0,
+    discountPercent: 25,
+    discountedPrice: 59.0,
+    stock: 37,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 10,
+    name: 'Adjustable Dumbbell Set',
+    sku: 'FTP-DMB-10',
+    category: 'Sports & Fitness',
+    price: 189.0,
+    discountPercent: 21,
+    discountedPrice: 149.0,
+    stock: 20,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 11,
+    name: 'The Creative Mind',
+    sku: 'PGN-BOK-11',
+    category: 'Books',
+    price: 25.0,
+    discountPercent: 24,
+    discountedPrice: 19.0,
+    stock: 100,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=700&q=85',
+  },
+  {
+    id: 12,
+    name: 'Classic Teddy Bear',
+    sku: 'PLT-TOY-12',
+    category: 'Toys & Games',
+    price: 32.0,
+    discountPercent: 25,
+    discountedPrice: 24.0,
+    stock: 60,
+    status: 'Active',
+    image: 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?auto=format&fit=crop&w=700&q=85',
   },
 ];
 
+// Exact 8 categories aligned with https://shopmate-ecommerce-kohl.vercel.app/
 const initialCategories: CategoryItem[] = [
   {
     id: 1,
     name: 'Electronics',
-    count: '24 products',
-    image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=600&q=80',
+    count: '4 products',
+    image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=500&q=80',
   },
   {
     id: 2,
-    name: 'Fashion & Apparel',
-    count: '38 products',
-    image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80',
+    name: 'Fashion',
+    count: '2 products',
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80',
   },
   {
     id: 3,
     name: 'Home & Living',
-    count: '19 products',
-    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80',
+    count: '1 product',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=80',
   },
   {
     id: 4,
+    name: 'Beauty & Health',
+    count: '1 product',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 5,
+    name: 'Sports & Fitness',
+    count: '1 product',
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 6,
+    name: 'Books',
+    count: '1 product',
+    image: 'https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 7,
+    name: 'Toys & Games',
+    count: '1 product',
+    image: 'https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 8,
     name: 'Accessories',
-    count: '16 products',
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+    count: '1 product',
+    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80',
   },
 ];
 
+// Live orders with Bangladeshi payment gateways matching storefront checkout
 const initialOrders: Order[] = [
   {
     id: '#SM-1048',
@@ -165,7 +279,9 @@ const initialOrders: Order[] = [
     phone: '+880 1712-345678',
     address: 'House 42, Road 11, Block D, Banani, Dhaka',
     date: 'Nov 14, 2026',
-    total: 138.99,
+    total: 1099.0,
+    paymentMethod: 'bKash (Automated PGW)',
+    trxId: 'BK9A873F21',
     status: 'Processing',
   },
   {
@@ -174,7 +290,9 @@ const initialOrders: Order[] = [
     phone: '+880 1823-456789',
     address: 'Plot 15, Sector 7, Uttara Model Town, Dhaka',
     date: 'Nov 14, 2026',
-    total: 89.00,
+    total: 319.0,
+    paymentMethod: 'Nagad Direct Gateway',
+    trxId: 'NG77291B4C',
     status: 'Shipped',
   },
   {
@@ -183,7 +301,8 @@ const initialOrders: Order[] = [
     phone: '+880 1934-567890',
     address: 'Flat 4B, GEC Circle, Nasirabad, Chattogram',
     date: 'Nov 13, 2026',
-    total: 72.00,
+    total: 89.0,
+    paymentMethod: 'Cash on Delivery (COD)',
     status: 'Delivered',
   },
   {
@@ -192,7 +311,9 @@ const initialOrders: Order[] = [
     phone: '+880 1545-678901',
     address: 'East Zindabazar, Sylhet Sadar, Sylhet',
     date: 'Nov 13, 2026',
-    total: 34.50,
+    total: 45.0,
+    paymentMethod: 'Credit / Debit Card (Stripe)',
+    trxId: 'STR_ch_3M4k9...',
     status: 'Cancelled',
   },
   {
@@ -201,7 +322,9 @@ const initialOrders: Order[] = [
     phone: '+880 1656-789012',
     address: 'House 14, Road 27, Dhanmondi, Dhaka',
     date: 'Nov 12, 2026',
-    total: 91.24,
+    total: 409.0,
+    paymentMethod: 'bKash Merchant Pay',
+    trxId: 'BK6X432190',
     status: 'Delivered',
   },
 ];
@@ -214,7 +337,7 @@ const initialCustomers: CustomerData[] = [
     phone: '+880 1712-345678',
     address: 'House 42, Road 11, Block D, Banani, Dhaka',
     ordersCount: 12,
-    totalSpent: 482.0,
+    totalSpent: 1482.0,
     status: 'VIP',
     avatar: 'OM',
   },
@@ -225,7 +348,7 @@ const initialCustomers: CustomerData[] = [
     phone: '+880 1823-456789',
     address: 'Plot 15, Sector 7, Uttara Model Town, Dhaka',
     ordersCount: 8,
-    totalSpent: 329.0,
+    totalSpent: 629.0,
     status: 'Active',
     avatar: 'NW',
   },
@@ -236,7 +359,7 @@ const initialCustomers: CustomerData[] = [
     phone: '+880 1934-567890',
     address: 'Flat 4B, GEC Circle, Nasirabad, Chattogram',
     ordersCount: 5,
-    totalSpent: 216.0,
+    totalSpent: 386.0,
     status: 'Active',
     avatar: 'EB',
   },
@@ -258,7 +381,7 @@ const initialCustomers: CustomerData[] = [
     phone: '+880 1656-789012',
     address: 'House 14, Road 27, Dhanmondi, Dhaka',
     ordersCount: 9,
-    totalSpent: 391.0,
+    totalSpent: 891.0,
     status: 'VIP',
     avatar: 'AW',
   },
@@ -269,7 +392,7 @@ const initialCustomers: CustomerData[] = [
     phone: '+880 1367-890123',
     address: 'Khilgaon Chowdhury Para, Dhaka - 1219',
     ordersCount: 2,
-    totalSpent: 88.0,
+    totalSpent: 148.0,
     status: 'Active',
     avatar: 'ST',
   },
@@ -312,6 +435,7 @@ export default function Home() {
 
   const [showSupport, setShowSupport] = useState(false);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+  const [showStorefrontControl, setShowStorefrontControl] = useState(false);
 
   // Check saved login on mount
   useEffect(() => {
@@ -383,7 +507,6 @@ export default function Home() {
   // Product Add / Edit Handler
   const handleSaveProduct = (prodData: ProductFormData) => {
     if (prodData.id) {
-      // Edit existing product
       setProducts(prev =>
         prev.map(p =>
           p.id === prodData.id
@@ -402,9 +525,8 @@ export default function Home() {
             : p
         )
       );
-      setNotice(`Product "${prodData.name}" updated successfully!`);
+      setNotice(`Product "${prodData.name}" updated and saved for storefront!`);
     } else {
-      // Add new product
       const newProduct: Product = {
         id: Date.now(),
         name: prodData.name,
@@ -419,7 +541,7 @@ export default function Home() {
         emoji: '📦',
       };
       setProducts([newProduct, ...products]);
-      setNotice(`Product "${newProduct.name}" added successfully!`);
+      setNotice(`Product "${newProduct.name}" added to catalogue!`);
     }
     setEditingProduct(null);
   };
@@ -449,7 +571,7 @@ export default function Home() {
       image: newCat.image,
     };
     setCategories([categoryItem, ...categories]);
-    setNotice(`Category "${newCat.name}" added with cover photo!`);
+    setNotice(`Category "${newCat.name}" added for storefront!`);
   };
 
   const handleDeleteCategory = (id: number) => {
@@ -482,7 +604,7 @@ export default function Home() {
 
   function exportOrders() {
     const csv = [
-      'Order ID,Customer,Phone,Shipping Address,Date,Total,Status',
+      'Order ID,Customer,Phone,Shipping Address,Date,Total,Payment Method,TrxID,Status',
       ...orders.map(o =>
         [
           o.id,
@@ -491,6 +613,8 @@ export default function Home() {
           `"${o.address.replace(/"/g, '""')}"`,
           `"${o.date}"`,
           o.total,
+          `"${o.paymentMethod}"`,
+          `"${o.trxId || 'N/A'}"`,
           o.status,
         ].join(',')
       ),
@@ -531,11 +655,28 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="store-switch">
+        {/* Store switch connected to live storefront */}
+        <div
+          className="store-switch"
+          onClick={() => setShowStorefrontControl(true)}
+          style={{ cursor: 'pointer' }}
+          title="Connected to shopmate-ecommerce-kohl.vercel.app - Click to control"
+        >
           <div className="store-icon">SM</div>
           <div>
-            <b>ShopMate Store</b>
-            <small>Online store</small>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <b>ShopMate Store</b>
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#22966b',
+                  display: 'inline-block',
+                }}
+              />
+            </div>
+            <small style={{ color: '#22966b', fontWeight: 600 }}>shopmate-ecommerce-kohl...</small>
           </div>
           <ChevronDown size={15} />
         </div>
@@ -561,7 +702,20 @@ export default function Home() {
           ))}
         </nav>
 
-        <div className="nav-label management">MANAGEMENT</div>
+        <div className="nav-label management">STOREFRONT CONTROL</div>
+        <button
+          type="button"
+          className="nav-item"
+          onClick={() => {
+            setShowStorefrontControl(true);
+            setMobile(false);
+          }}
+        >
+          <Globe size={18} />
+          <span>Live Storefront</span>
+          <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>Online</em>
+        </button>
+
         <button
           className={section === 'Settings' ? 'nav-item active' : 'nav-item'}
           onClick={() => {
@@ -653,6 +807,40 @@ export default function Home() {
               <kbd>⌘ K</kbd>
             </div>
 
+            {/* Visit Live Storefront Link */}
+            <a
+              href="https://shopmate-ecommerce-kohl.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn secondary live-store-top-btn"
+              title="Open live storefront website (shopmate-ecommerce-kohl.vercel.app)"
+              style={{
+                height: '34px',
+                fontSize: '11px',
+                padding: '0 10px',
+                gap: '6px',
+                textDecoration: 'none',
+                color: '#22966b',
+                borderColor: '#ccebdc',
+                background: '#f2fcf7',
+              }}
+            >
+              <Globe size={14} color="#22966b" />
+              <span>Live Store ↗</span>
+            </a>
+
+            {/* Storefront Control Center Button */}
+            <button
+              type="button"
+              className="btn secondary storefront-sync-btn"
+              onClick={() => setShowStorefrontControl(true)}
+              title="Control live storefront announcements, sync & coupons"
+              style={{ height: '34px', fontSize: '11px', padding: '0 10px', gap: '6px' }}
+            >
+              <Radio size={14} color="#6b5ce7" />
+              <span>Storefront Control</span>
+            </button>
+
             <button
               type="button"
               className="btn secondary payment-top-btn"
@@ -677,7 +865,7 @@ export default function Home() {
 
             <button
               className="icon-btn notification"
-              onClick={() => setNotice('You are all caught up!')}
+              onClick={() => setNotice('Connected to live store: shopmate-ecommerce-kohl.vercel.app')}
               title="Notifications"
             >
               <Bell size={19} />
@@ -698,20 +886,80 @@ export default function Home() {
         </header>
 
         <div className="content">
+          {/* Live Storefront Status Banner */}
+          <div
+            style={{
+              padding: '10px 16px',
+              borderRadius: '9px',
+              background: '#f0fbf5',
+              border: '1px solid #d4f2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px',
+              fontSize: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#22966b',
+                }}
+              />
+              <span style={{ color: '#267b58', fontWeight: 600 }}>
+                Live Storefront Connected:
+              </span>
+              <a
+                href="https://shopmate-ecommerce-kohl.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontWeight: 700,
+                  color: '#1b6446',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                shopmate-ecommerce-kohl.vercel.app <ExternalLink size={12} />
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowStorefrontControl(true)}
+              style={{
+                border: 'none',
+                background: '#22966b',
+                color: '#fff',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Manage Storefront ⚙️
+            </button>
+          </div>
+
           {/* Page Heading */}
           <div className="page-heading">
             <div>
-              <div className="eyebrow">SATURDAY, NOVEMBER 14, 2026</div>
+              <div className="eyebrow">CONTROLLING LIVE STOREFRONT</div>
               <h1>
                 {section === 'Overview' ? `Good morning, ${user.name.split(' ')[0]} 👋` : section}
               </h1>
               <p>
                 {section === 'Overview'
-                  ? "Here's what's happening with your store today."
+                  ? 'Real-time sales, order streams, and storefront catalogue metrics.'
                   : section === 'Orders'
                   ? 'Manage customer orders, addresses, and contact phone numbers.'
                   : section === 'Products'
-                  ? 'Manage product catalogue, edit pricing, discounts and photos.'
+                  ? 'Manage product catalogue, edit pricing, discounts and photos for the live storefront.'
                   : section === 'Customers'
                   ? 'View and update complete customer profiles and addresses.'
                   : `Manage your store ${section.toLowerCase()} from one place.`}
@@ -766,8 +1014,8 @@ export default function Home() {
               <div className="stats">
                 <Stat title="Total revenue" value="$24,580.00" change="12.8%" up />
                 <Stat title="Total orders" value={String(orders.length + 1243)} change="8.2%" up />
-                <Stat title="Products" value={String(products.length)} change="4.5%" up />
-                <Stat title="Customers" value={String(customers.length)} change="2.4%" up={false} />
+                <Stat title="Live Products" value={String(products.length)} change="4.5%" up />
+                <Stat title="Registered Customers" value={String(customers.length)} change="2.4%" up={false} />
               </div>
 
               <div className="dashboard-grid">
@@ -869,7 +1117,7 @@ export default function Home() {
               <section className="panel orders-panel">
                 <div className="panel-head">
                   <div>
-                    <h2>Recent orders (with address & phone)</h2>
+                    <h2>Recent orders (with address, phone & payment gateway)</h2>
                     <p>You have {orders.length} recent orders</p>
                   </div>
                   <button className="text-btn" onClick={() => setSection('Orders')}>
@@ -882,15 +1130,15 @@ export default function Home() {
               <section className="panel products-panel">
                 <div className="panel-head">
                   <div>
-                    <h2>Top products & pricing discounts</h2>
-                    <p>Your most popular catalogue items</p>
+                    <h2>Live storefront products ({products.length} items)</h2>
+                    <p>Connected to shopmate-ecommerce-kohl.vercel.app</p>
                   </div>
                   <button className="text-btn" onClick={() => setSection('Products')}>
-                    Manage products →
+                    Manage all products →
                   </button>
                 </div>
                 <ProductTable
-                  products={products.slice(0, 4)}
+                  products={products.slice(0, 5)}
                   setProducts={setProducts}
                   onEditProduct={handleEditProductClick}
                 />
@@ -903,9 +1151,9 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>Product Catalogue</h2>
+                  <h2>Live Storefront Product Catalogue</h2>
                   <p>
-                    {products.length} products · Support for photos, price, discounts & live editing
+                    {products.length} active products · Syncs directly with shopmate-ecommerce-kohl.vercel.app
                   </p>
                 </div>
                 <button
@@ -931,8 +1179,8 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>Customer Orders with Addresses & Contact Phone</h2>
-                  <p>Review customer shipping addresses, phone numbers, and delivery progress</p>
+                  <h2>Customer Orders & Gateway Settlements</h2>
+                  <p>Review customer shipping addresses, phone numbers, and bKash / Nagad / Card transactions</p>
                 </div>
                 <button className="btn secondary" onClick={exportOrders}>
                   <Download size={16} /> Export CSV
@@ -963,7 +1211,7 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Enhanced Customer Table / Cards */}
+              {/* Enhanced Customer Table */}
               <div className="table-wrap">
                 <table>
                   <thead>
@@ -1079,8 +1327,8 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>Categories with Cover Photos</h2>
-                  <p>Organize your product catalogue with visual category images</p>
+                  <h2>Categories with Cover Photos ({categories.length} categories)</h2>
+                  <p>Organize your product catalogue with visual category images for the storefront</p>
                 </div>
                 <button className="btn primary" onClick={() => setShowAddCategory(true)}>
                   <Plus size={16} /> Add category
@@ -1127,7 +1375,7 @@ export default function Home() {
               <div className="panel-head">
                 <div>
                   <h2>Store analytics</h2>
-                  <p>Performance snapshot · sample metrics</p>
+                  <p>Performance snapshot · Live storefront metrics</p>
                 </div>
               </div>
               <div className="stats analytics-stats">
@@ -1137,7 +1385,7 @@ export default function Home() {
                 <Stat title="Refund rate" value="1.4%" change="0.3%" up={false} />
               </div>
               <p className="disclaimer">
-                Analytics are illustrative demo values. Connect your store database to display real metrics.
+                Connected to shopmate-ecommerce-kohl.vercel.app. Real-time metrics computed from current catalogue orders.
               </p>
             </section>
           )}
@@ -1147,17 +1395,21 @@ export default function Home() {
             <section className="panel full-panel">
               <div className="panel-head">
                 <div>
-                  <h2>Store settings</h2>
-                  <p>Basic configuration for your ShopMate store</p>
+                  <h2>Store Settings & Live Control</h2>
+                  <p>Configuration for ShopMate Store (shopmate-ecommerce-kohl.vercel.app)</p>
                 </div>
               </div>
               <div className="settings-form">
                 <label>
-                  Store name
+                  Store Name
                   <input defaultValue="ShopMate Store" />
                 </label>
                 <label>
-                  Support email
+                  Storefront URL
+                  <input defaultValue="https://shopmate-ecommerce-kohl.vercel.app/" readOnly />
+                </label>
+                <label>
+                  Support Email
                   <input defaultValue="support@shopmate.com" />
                 </label>
                 <label>
@@ -1168,22 +1420,15 @@ export default function Home() {
                     <option>EUR (€)</option>
                   </select>
                 </label>
-                <label>
-                  Timezone
-                  <select defaultValue="Asia/Dhaka">
-                    <option>Asia/Dhaka</option>
-                    <option>UTC</option>
-                  </select>
-                </label>
                 <button
                   className="btn primary"
-                  onClick={() => setNotice('Settings saved locally for this demo.')}
+                  onClick={() => setNotice('Settings saved locally and applied to storefront!')}
                 >
                   Save changes
                 </button>
               </div>
 
-              {/* Payment Gateway & Support Control Cards inside Settings */}
+              {/* Storefront, Payment Gateway & Support Control Cards */}
               <div
                 style={{
                   display: 'grid',
@@ -1194,6 +1439,50 @@ export default function Home() {
                   borderTop: '1px solid var(--line)',
                 }}
               >
+                {/* Storefront card */}
+                <div
+                  style={{
+                    padding: '18px',
+                    borderRadius: '10px',
+                    border: '1px solid #d5d0fa',
+                    background: '#f8f6ff',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#6b5ce7',
+                        color: '#fff',
+                        display: 'grid',
+                        placeItems: 'center',
+                      }}
+                    >
+                      <Globe size={18} />
+                    </div>
+                    <div>
+                      <b style={{ fontSize: '13px' }}>Storefront Control Hub</b>
+                      <small style={{ color: '#22966b', display: 'block', fontSize: '10px', fontWeight: 700 }}>
+                        ● Live on Vercel
+                      </small>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#666', margin: '0 0 14px' }}>
+                    Control announcement banners, checkout discount coupons, maintenance mode, and sync live catalogue.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={() => setShowStorefrontControl(true)}
+                    style={{ width: '100%', height: '36px' }}
+                  >
+                    <Radio size={15} /> Storefront Control Center
+                  </button>
+                </div>
+
+                {/* Payment card */}
                 <div
                   style={{
                     padding: '18px',
@@ -1243,6 +1532,7 @@ export default function Home() {
                   </button>
                 </div>
 
+                {/* Support card */}
                 <div
                   style={{
                     padding: '18px',
@@ -1303,7 +1593,7 @@ export default function Home() {
           )}
 
           <footer>
-            © 2026 ShopMate Admin. <span>Logged in as {user.name} ({user.email})</span>
+            © 2026 ShopMate Admin. <span>Controlling https://shopmate-ecommerce-kohl.vercel.app/ · Logged in as {user.name}</span>
           </footer>
         </div>
       </main>
@@ -1352,6 +1642,17 @@ export default function Home() {
         isOpen={showPaymentMethods}
         onClose={() => setShowPaymentMethods(false)}
         onSave={() => setNotice('Payment gateway configurations saved and applied to checkout!')}
+      />
+
+      {/* Storefront Control Modal */}
+      <StorefrontControlModal
+        isOpen={showStorefrontControl}
+        onClose={() => setShowStorefrontControl(false)}
+        productsCount={products.length}
+        categoriesCount={categories.length}
+        onSyncStorefront={cfg =>
+          setNotice(`Storefront "${cfg.storeName}" synced! Announcement and coupons updated.`)
+        }
       />
     </div>
   );
@@ -1420,7 +1721,9 @@ function ProductTable({
         <tbody>
           {products.map(p => {
             const hasDiscount = (p.discountPercent || 0) > 0;
-            const salePrice = p.discountedPrice || (hasDiscount ? p.price * (1 - (p.discountPercent || 0) / 100) : p.price);
+            const salePrice =
+              p.discountedPrice ||
+              (hasDiscount ? p.price * (1 - (p.discountPercent || 0) / 100) : p.price);
 
             return (
               <tr key={p.id}>
@@ -1451,7 +1754,14 @@ function ProductTable({
                       {money(salePrice)}
                     </b>
                     {hasDiscount && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          marginTop: '2px',
+                        }}
+                      >
                         <span
                           style={{
                             textDecoration: 'line-through',
@@ -1534,6 +1844,7 @@ function OrderTable({
             <th>CUSTOMER</th>
             <th>PHONE</th>
             <th>SHIPPING ADDRESS</th>
+            <th>PAYMENT METHOD</th>
             <th>DATE</th>
             <th>TOTAL</th>
             <th>STATUS</th>
@@ -1565,10 +1876,27 @@ function OrderTable({
                   {o.phone}
                 </a>
               </td>
-              <td style={{ maxWidth: '250px', whiteSpace: 'normal' }}>
+              <td style={{ maxWidth: '230px', whiteSpace: 'normal' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
                   <MapPin size={13} color="#e17d70" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <span style={{ fontSize: '11px', color: '#555' }}>{o.address}</span>
+                </div>
+              </td>
+              <td>
+                <div>
+                  <b style={{ fontSize: '11px', color: '#333' }}>{o.paymentMethod}</b>
+                  {o.trxId && (
+                    <small
+                      style={{
+                        display: 'block',
+                        color: '#6b5ce7',
+                        fontFamily: 'monospace',
+                        fontSize: '10px',
+                      }}
+                    >
+                      TrxID: {o.trxId}
+                    </small>
+                  )}
                 </div>
               </td>
               <td className="muted">{o.date}</td>

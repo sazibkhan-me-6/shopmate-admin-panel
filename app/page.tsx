@@ -451,6 +451,34 @@ export default function Home() {
     }
   }, []);
 
+  // Real-time synchronization with incoming orders from the website
+  useEffect(() => {
+    const syncLiveOrders = async () => {
+      try {
+        const res = await fetch('/api/orders');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.orders && Array.isArray(json.orders) && json.orders.length > 0) {
+            setOrders(prev => {
+              const existingIds = new Set(prev.map(o => o.id));
+              const freshOrders = json.orders.filter((o: Order) => !existingIds.has(o.id));
+              if (freshOrders.length > 0) {
+                return [...freshOrders, ...prev];
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (err) {
+        // quiet fallback
+      }
+    };
+
+    syncLiveOrders();
+    const timer = setInterval(syncLiveOrders, 8000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Keyboard shortcut (⌘ K / Ctrl + K) for search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -600,6 +628,11 @@ export default function Home() {
   function updateOrder(id: string, status: Order['status']) {
     setOrders(orders.map(o => (o.id === id ? { ...o, status } : o)));
     setNotice(`${id} marked ${status.toLowerCase()}.`);
+    fetch('/api/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: id, status }),
+    }).catch(() => {});
   }
 
   function exportOrders() {
@@ -1650,9 +1683,22 @@ export default function Home() {
         onClose={() => setShowStorefrontControl(false)}
         productsCount={products.length}
         categoriesCount={categories.length}
-        onSyncStorefront={cfg =>
-          setNotice(`Storefront "${cfg.storeName}" synced! Announcement and coupons updated.`)
-        }
+        onSyncStorefront={async cfg => {
+          try {
+            await fetch('/api/store', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...cfg,
+                products,
+                categories,
+              }),
+            });
+          } catch (e) {
+            console.error('Failed to broadcast to /api/store', e);
+          }
+          setNotice(`Storefront "${cfg.storeName}" synced! Announcement, products & coupons updated.`);
+        }}
       />
     </div>
   );

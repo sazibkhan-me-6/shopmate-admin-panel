@@ -880,93 +880,23 @@ export default function Home() {
         </button>
 
         <div className="sidebar-bottom">
-          <div className="sidebar-store-card">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '8px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="live-pulsing-dot" />
-                <b style={{ fontSize: '11px', color: '#1e293b' }}>Live Storefront</b>
-              </div>
-              <a
-                href="https://shopmate-ecommerce-kohl.vercel.app/"
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: '10px',
-                  color: '#6b5ce7',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  textDecoration: 'none',
-                }}
-                title="Open live website in a new tab"
-              >
-                Visit <ExternalLink size={10} />
-              </a>
+          <div
+            className="help"
+            onClick={() => setShowSupport(true)}
+            style={{ cursor: 'pointer' }}
+            title="Click to open Customer Support"
+          >
+            <CircleHelp size={18} />
+            <div>
+              <b>Need help?</b>
+              <small>Click for 24/7 support</small>
             </div>
-            <div
-              style={{
-                fontSize: '10px',
-                color: '#64748b',
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '6px 8px',
-                background: '#fff',
-                borderRadius: '6px',
-                border: '1px solid #ebebf0',
-              }}
-            >
-              <span>Catalogue</span>
-              <b style={{ color: '#0f172a' }}>
-                {products.length} prods · {categories.length} cats
-              </b>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowStorefrontControl(true)}
-              style={{
-                width: '100%',
-                marginTop: '8px',
-                padding: '7px 0',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: '#6b5ce7',
-                background: '#f4f2ff',
-                border: '1px solid #e2ddfe',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                transition: 'all .15s',
-              }}
-            >
-              <Radio size={12} color="#6b5ce7" /> Storefront Hub
-            </button>
           </div>
-
           <div className="profile">
             <div className="avatar">{user.avatar}</div>
-            <div style={{ overflow: 'hidden', minWidth: 0 }}>
+            <div>
               <b>{user.name}</b>
-              <small
-                style={{
-                  display: 'block',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {user.email}
-              </small>
+              <small>{user.email}</small>
             </div>
             <button
               className="logout-btn"

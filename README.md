@@ -1,8 +1,28 @@
 # ShopMate Admin Panel 🛍️
 
-A modern, responsive e-commerce admin control panel built with **Next.js 14 (App Router)**, **TypeScript**, **React 18**, and **Lucide Icons**. Designed to manage products with photo uploads, visual categories, monitor sales performance, track orders, and authenticate store administrators seamlessly.
+A modern, responsive e-commerce admin control panel built with **Next.js 14 (App Router)**, **TypeScript**, **React 18**, and **Lucide Icons**. Designed to manage products with photo uploads, visual categories, monitor sales performance, track orders, configure payment methods, provide customer support, and authenticate store administrators seamlessly.
 
 ## ✨ Features
+
+- **💳 Payment Method Control System:**
+  - One-click control buttons in the topbar, sidebar, and store settings.
+  - Full toggle controls (Active / Disabled) for checkout gateways:
+    - **bKash (বিকাশ)** - Automated merchant checkout & mobile wallet payments.
+    - **Nagad (নগদ)** - Direct gateway & personal merchant payment.
+    - **Credit / Debit Cards** - Visa, Mastercard, AMEX with 3D Secure verification.
+    - **Cash on Delivery (COD)** - In-house courier doorstep cash settlement.
+    - **DBBL Rocket** - Dutch-Bangla mobile banking integration.
+    - **International Gateways** - PayPal & global Stripe multi-currency processing.
+  - Per-gateway configuration: Sandbox Test Mode vs Live Production, transaction fees (%), and merchant account info.
+
+- **🎧 24/7 Customer Support & Help Desk:**
+  - Dedicated Support button in the topbar, sidebar management menu, and sidebar bottom help card.
+  - **Support Channels**:
+    - Direct Email support (`support@shopmate.com`)
+    - Toll-free Hotline (`+880 9600-123456`)
+    - WhatsApp Live Chat Desk (`+880 1700-998877`)
+  - **Support Ticket System**: Submit categorized tickets (Payment Gateway, Orders & Shipping, Catalogue, Account) with priority levels (Urgent, High, Normal) and auto-generated ticket IDs (`#TKT-XXXX`).
+  - **Knowledgebase / FAQs**: Instant answers to common store configuration questions.
 
 - **🔐 Administrator Login System:**
   - Secure authentication flow with session persistence via `localStorage`.
@@ -46,6 +66,7 @@ A modern, responsive e-commerce admin control panel built with **Next.js 14 (App
 
 - **⚙️ Store Settings:**
   - Store configuration controls (Store Name, Support Email, Currency, Timezone).
+  - Quick panels for Payment Gateways and Customer Support.
 
 - **📱 Fully Responsive Design:**
   - Mobile slide-out navigation with overlay scrim.
@@ -95,18 +116,20 @@ npm run dev
 ```
 shopmate-admin-panel/
 ├── app/
-│   ├── globals.css              # Custom design system & responsive styling
-│   ├── layout.tsx               # Root Next.js layout & metadata
-│   └── page.tsx                 # Dashboard & authentication state orchestrator
+│   ├── globals.css                 # Custom design system & responsive styling
+│   ├── layout.tsx                  # Root Next.js layout & metadata
+│   └── page.tsx                    # Dashboard & authentication state orchestrator
 ├── components/
-│   ├── LoginScreen.tsx          # Login authentication view & credentials handler
-│   ├── AddProductModal.tsx      # Modal for adding products with photo upload & preview
-│   └── AddCategoryModal.tsx     # Modal for adding categories with cover photos
-├── .gitignore                   # Standard Next.js gitignore
-├── next.config.mjs              # Next.js configuration
-├── package.json                 # Dependencies & scripts
-├── tsconfig.json                # TypeScript configuration
-└── README.md                    # Project documentation
+│   ├── LoginScreen.tsx             # Login authentication view & credentials handler
+│   ├── AddProductModal.tsx         # Modal for adding products with photo upload & preview
+│   ├── AddCategoryModal.tsx        # Modal for adding categories with cover photos
+│   ├── CustomerSupportModal.tsx    # Customer support desk, ticket submission & FAQs
+│   └── PaymentMethodsModal.tsx     # Payment method control (bKash, Nagad, Cards, COD)
+├── .gitignore                      # Standard Next.js gitignore
+├── next.config.mjs                 # Next.js configuration
+├── package.json                    # Dependencies & scripts
+├── tsconfig.json                   # TypeScript configuration
+└── README.md                       # Project documentation
 ```
 
 ## 📄 License

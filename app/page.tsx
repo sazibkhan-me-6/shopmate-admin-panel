@@ -21,12 +21,17 @@ import {
   Trash2,
   CircleHelp,
   LogOut,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Headphones,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 
 import LoginScreen, { UserProfile } from '../components/LoginScreen';
 import AddProductModal from '../components/AddProductModal';
 import AddCategoryModal, { CategoryItem } from '../components/AddCategoryModal';
+import CustomerSupportModal from '../components/CustomerSupportModal';
+import PaymentMethodsModal, { PaymentMethodItem } from '../components/PaymentMethodsModal';
 
 type Product = {
   id: number;
@@ -169,6 +174,8 @@ export default function Home() {
   // Modals
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
 
   // Check saved login on mount
   useEffect(() => {
@@ -349,12 +356,43 @@ export default function Home() {
           <span>Settings</span>
         </button>
 
+        <button
+          type="button"
+          className="nav-item"
+          onClick={() => {
+            setShowPaymentMethods(true);
+            setMobile(false);
+          }}
+        >
+          <CreditCard size={18} />
+          <span>Payment Methods</span>
+          <em style={{ background: '#f0edff', color: '#6b5ce7', fontWeight: 700 }}>Control</em>
+        </button>
+
+        <button
+          type="button"
+          className="nav-item"
+          onClick={() => {
+            setShowSupport(true);
+            setMobile(false);
+          }}
+        >
+          <Headphones size={18} />
+          <span>Customer Support</span>
+          <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>24/7</em>
+        </button>
+
         <div className="sidebar-bottom">
-          <div className="help">
+          <div
+            className="help"
+            onClick={() => setShowSupport(true)}
+            style={{ cursor: 'pointer' }}
+            title="Click to open Customer Support"
+          >
             <CircleHelp size={18} />
             <div>
               <b>Need help?</b>
-              <small>Visit our help center</small>
+              <small>Click for 24/7 support</small>
             </div>
           </div>
           <div className="profile">
@@ -397,6 +435,28 @@ export default function Home() {
               />
               <kbd>⌘ K</kbd>
             </div>
+            <button
+              type="button"
+              className="btn secondary payment-top-btn"
+              onClick={() => setShowPaymentMethods(true)}
+              title="Open Payment Method Control"
+              style={{ height: '34px', fontSize: '11px', padding: '0 10px', gap: '6px' }}
+            >
+              <CreditCard size={14} color="#6b5ce7" />
+              <span>Payment Control</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn secondary support-top-btn"
+              onClick={() => setShowSupport(true)}
+              title="Customer Support & Help Desk"
+              style={{ height: '34px', fontSize: '11px', padding: '0 10px', gap: '6px' }}
+            >
+              <Headphones size={14} color="#22966b" />
+              <span>Support (24/7)</span>
+            </button>
+
             <button
               className="icon-btn notification"
               onClick={() => setNotice('You are all caught up!')}
@@ -767,6 +827,102 @@ export default function Home() {
                   Save changes
                 </button>
               </div>
+
+              {/* Payment Gateway & Support Control Cards inside Settings */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '16px',
+                  marginTop: '28px',
+                  paddingTop: '20px',
+                  borderTop: '1px solid var(--line)',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '18px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--line)',
+                    background: '#fcfbfe',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#f0edff',
+                        color: '#6b5ce7',
+                        display: 'grid',
+                        placeItems: 'center',
+                      }}
+                    >
+                      <CreditCard size={18} />
+                    </div>
+                    <div>
+                      <b style={{ fontSize: '13px' }}>Payment Gateways</b>
+                      <small style={{ color: '#888', display: 'block', fontSize: '10px' }}>
+                        bKash, Nagad, Cards & COD
+                      </small>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#666', margin: '0 0 14px' }}>
+                    Control checkout payment methods, toggle sandbox test mode, and set transaction charges.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={() => setShowPaymentMethods(true)}
+                    style={{ width: '100%', height: '36px' }}
+                  >
+                    <CreditCard size={15} /> Payment Method Control
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    padding: '18px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--line)',
+                    background: '#f9fefe',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#e9f8f1',
+                        color: '#22966b',
+                        display: 'grid',
+                        placeItems: 'center',
+                      }}
+                    >
+                      <Headphones size={18} />
+                    </div>
+                    <div>
+                      <b style={{ fontSize: '13px' }}>Customer Support Desk</b>
+                      <small style={{ color: '#22966b', display: 'block', fontSize: '10px', fontWeight: 700 }}>
+                        ● 24/7 Live Assistance
+                      </small>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#666', margin: '0 0 14px' }}>
+                    Connect with dedicated support via WhatsApp, toll-free hotline, email, or submit a support ticket.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => setShowSupport(true)}
+                    style={{ width: '100%', height: '36px' }}
+                  >
+                    <Headphones size={15} color="#22966b" /> Open Customer Support
+                  </button>
+                </div>
+              </div>
             </section>
           )}
 
@@ -789,6 +945,22 @@ export default function Home() {
         isOpen={showAddCategory}
         onClose={() => setShowAddCategory(false)}
         onAddCategory={handleAddCategory}
+      />
+
+      {/* Customer Support Modal */}
+      <CustomerSupportModal
+        isOpen={showSupport}
+        onClose={() => setShowSupport(false)}
+        onSendTicket={ticket =>
+          setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
+        }
+      />
+
+      {/* Payment Methods Control Modal */}
+      <PaymentMethodsModal
+        isOpen={showPaymentMethods}
+        onClose={() => setShowPaymentMethods(false)}
+        onSave={() => setNotice('Payment gateway configurations saved and applied to checkout!')}
       />
     </div>
   );

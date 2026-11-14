@@ -969,17 +969,6 @@ export default function Home() {
 
             <button
               type="button"
-              className="btn secondary payment-top-btn"
-              onClick={() => setShowPaymentMethods(true)}
-              title="Open Payment Method Control"
-              style={{ height: '34px', fontSize: '11px', padding: '0 10px', gap: '6px' }}
-            >
-              <CreditCard size={14} color="#6b5ce7" />
-              <span>Payment Control</span>
-            </button>
-
-            <button
-              type="button"
               className="btn secondary support-top-btn"
               onClick={() => setShowSupport(true)}
               title="Customer Support & Help Desk"

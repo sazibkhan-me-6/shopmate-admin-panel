@@ -188,3 +188,105 @@
     opacity: 1;
   }
 }
+
+
+/* Real-Time Live Support Knock Notification System */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(14deg); }
+  40%, 80% { transform: rotate(-14deg); }
+}
+
+.support-knock-alert {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  width: min(420px, calc(100vw - 32px));
+  background: #ffffff;
+  border: 1px solid #e0dcf8;
+  border-left: 5px solid #6b5ce7;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 20px 60px rgba(107, 92, 231, 0.28), 0 6px 18px rgba(0,0,0,0.08);
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.knock-bell-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #f0edff;
+  color: #6b5ce7;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  animation: bellRing 1.5s infinite;
+}
+
+.knock-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 12px;
+  animation: pulseGlow 1.8s infinite;
+}
+
+.knock-pulse-badge span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.knock-action-btn {
+  background: #6b5ce7;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all .15s ease;
+  box-shadow: 0 3px 10px rgba(107, 92, 231, 0.35);
+}
+
+.knock-action-btn:hover {
+  background: #5b4bd6;
+  transform: translateY(-1px);
+}

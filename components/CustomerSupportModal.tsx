@@ -21,6 +21,7 @@ import {
   Filter,
   Check,
   ArrowRight,
+  Bell,
 } from 'lucide-react';
 
 export interface SupportMessage {
@@ -51,6 +52,8 @@ interface CustomerSupportModalProps {
   onClose: () => void;
   onSendTicket?: (ticket: { id: string; subject: string; category: string; message: string }) => void;
   onNotice?: (msg: string) => void;
+  initialTicketId?: string | null;
+  onSimulateKnock?: () => void;
 }
 
 const FAQS = [
@@ -160,10 +163,19 @@ export default function CustomerSupportModal({
   onClose,
   onSendTicket,
   onNotice,
+  initialTicketId,
+  onSimulateKnock,
 }: CustomerSupportModalProps) {
   const [tab, setTab] = useState<'inbox' | 'config' | 'create' | 'faq'>('inbox');
   const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
   const [selectedTicketId, setSelectedTicketId] = useState<string>('#TKT-8841');
+
+  useEffect(() => {
+    if (initialTicketId) {
+      setSelectedTicketId(initialTicketId);
+      setTab('inbox');
+    }
+  }, [initialTicketId]);
   const [replyText, setReplyText] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -501,6 +513,29 @@ export default function CustomerSupportModal({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {onSimulateKnock && (
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={onSimulateKnock}
+                title="Simulate a live customer inquiry from the website to test chime & pop-up alert"
+                style={{
+                  height: '30px',
+                  fontSize: '11px',
+                  padding: '0 10px',
+                  gap: '5px',
+                  background: '#fef3c7',
+                  borderColor: '#fde68a',
+                  color: '#b45309',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Bell size={13} />
+                <span>Test Live Knock</span>
+              </button>
+            )}
             <button
               type="button"
               className="icon-btn"

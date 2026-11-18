@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -454,6 +454,70 @@ export default function Home() {
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [showStorefrontControl, setShowStorefrontControl] = useState(false);
 
+  // Real-time support knock alert state
+  const [incomingKnock, setIncomingKnock] = useState<{
+    id: string;
+    customerName: string;
+    customerPhone?: string;
+    subject: string;
+    message: string;
+    time: string;
+  } | null>(null);
+  const [targetSupportTicketId, setTargetSupportTicketId] = useState<string | null>(null);
+  const isInitialSupportSyncRef = useRef<boolean>(true);
+  const knownTicketIdsRef = useRef<Set<string>>(new Set());
+
+  // Web Audio API Synthesizer - Melodic notification chime for incoming customer knock
+  const playSupportKnockChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // Tone 1: 784 Hz (G5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(783.99, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.35);
+
+      // Tone 2: 1046.5 Hz (C6) - Higher melodic ring
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1046.5, ctx.currentTime + 0.12);
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.12);
+      osc2.stop(ctx.currentTime + 0.55);
+    } catch (e) {
+      // AudioContext fallback
+    }
+  };
+
+  // Browser desktop notification trigger
+  const triggerDesktopNotification = (customerName: string, subject: string, message: string) => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        try {
+          new Notification(`🔔 Customer Knock: ${customerName}`, {
+            body: `${subject}\n"${message}"`,
+            icon: '/favicon.ico',
+          });
+        } catch (e) {}
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    }
+  };
+
   // Check saved login on mount
   useEffect(() => {
     try {
@@ -465,6 +529,18 @@ export default function Home() {
       console.error('Failed to parse saved user', e);
     } finally {
       setIsAuthReady(true);
+    }
+  }, []);
+
+  // Request browser notification permission gently on first interaction
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      const askPermission = () => {
+        Notification.requestPermission();
+        window.removeEventListener('click', askPermission);
+      };
+      window.addEventListener('click', askPermission, { once: true });
+      return () => window.removeEventListener('click', askPermission);
     }
   }, []);
 
@@ -513,15 +589,50 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // Real-time synchronization with incoming support inquiries from the website
+  // Real-time synchronization & instant notification when customer knocks on support from the website
   useEffect(() => {
     const syncLiveSupport = async () => {
       try {
         const res = await fetch('/api/support');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.unreadCount !== undefined) {
-            setUnreadSupportCount(json.unreadCount);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.unreadCount !== undefined) {
+          setUnreadSupportCount(json.unreadCount);
+        }
+
+        const tickets = json.tickets as any[];
+        if (Array.isArray(tickets)) {
+          if (isInitialSupportSyncRef.current) {
+            // First run: record initial ticket IDs without ringing chime
+            tickets.forEach(t => knownTicketIdsRef.current.add(t.id));
+            isInitialSupportSyncRef.current = false;
+          } else {
+            // Subsequent poll: detect brand new inquiries from customer knocks
+            const brandNewTickets = tickets.filter(t => !knownTicketIdsRef.current.has(t.id) && t.unread);
+            if (brandNewTickets.length > 0) {
+              const newest = brandNewTickets[0];
+              brandNewTickets.forEach(t => knownTicketIdsRef.current.add(t.id));
+
+              // 1. Play audio chime
+              playSupportKnockChime();
+
+              // 2. Trigger browser notification
+              const lastMsg =
+                newest.messages && newest.messages.length > 0
+                  ? newest.messages[newest.messages.length - 1].text
+                  : newest.subject;
+              triggerDesktopNotification(newest.customerName, newest.subject, lastMsg);
+
+              // 3. Show floating pop-up card
+              setIncomingKnock({
+                id: newest.id,
+                customerName: newest.customerName,
+                customerPhone: newest.customerPhone,
+                subject: newest.subject,
+                message: lastMsg,
+                time: 'Just now',
+              });
+            }
           }
         }
       } catch (err) {
@@ -530,9 +641,64 @@ export default function Home() {
     };
 
     syncLiveSupport();
-    const timer = setInterval(syncLiveSupport, 10000);
+    const timer = setInterval(syncLiveSupport, 3500);
     return () => clearInterval(timer);
   }, []);
+
+  // Simulate a live customer knock from the website to test sound & pop-up
+  const handleSimulateCustomerKnock = async () => {
+    const dummyKnocks = [
+      {
+        name: 'Tanvir Hasan',
+        phone: '+880 1711-889922',
+        message: 'আসসালামু আলাইকুম, আমি একটা স্মার্টওয়াচ অর্ডার করতে চাই, কত দিনে ডেলিভারি পাবো?',
+        subject: 'Delivery time inquiry for Smartwatch',
+        category: 'Product Inquiry',
+      },
+      {
+        name: 'Arifa Sultana',
+        phone: '+880 1819-334455',
+        message: 'Hi! I made a payment via bKash TrxID: 9X7B2M4K8P. Could you please confirm?',
+        subject: 'bKash Payment Verification',
+        category: 'Payment Gateway',
+      },
+      {
+        name: 'Mehedi Hasan',
+        phone: '+880 1912-778899',
+        message: 'Hello ShopMate Support! Is cash on delivery available in Sylhet Sadar?',
+        subject: 'Cash on delivery in Sylhet inquiry',
+        category: 'Orders & Shipping',
+      },
+      {
+        name: 'Sumaiya Akter',
+        phone: '+880 1614-223344',
+        message: 'Do you have return or replacement if size 42 does not fit properly?',
+        subject: 'Exchange and return policy inquiry',
+        category: 'Returns & Refunds',
+      },
+    ];
+
+    const pick = dummyKnocks[Math.floor(Math.random() * dummyKnocks.length)];
+    try {
+      await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: pick.name,
+          customerPhone: pick.phone,
+          customerEmail: `${pick.name.toLowerCase().replace(/\s+/g, '.')}${Math.floor(Math.random() * 90 + 10)}@gmail.com`,
+          subject: pick.subject,
+          category: pick.category,
+          urgency: 'Urgent',
+          source: 'Storefront Live Chat',
+          message: pick.message,
+        }),
+      });
+      setNotice('🔔 Simulation: New customer knock sent from live website! Watch for instant notification.');
+    } catch (e) {
+      setNotice('Failed to simulate customer knock');
+    }
+  };
 
   // Keyboard shortcut (⌘ K / Ctrl + K) for search
   useEffect(() => {
@@ -2215,7 +2381,12 @@ export default function Home() {
       {/* Customer Support Modal */}
       <CustomerSupportModal
         isOpen={showSupport}
-        onClose={() => setShowSupport(false)}
+        onClose={() => {
+          setShowSupport(false);
+          setTargetSupportTicketId(null);
+        }}
+        initialTicketId={targetSupportTicketId}
+        onSimulateKnock={handleSimulateCustomerKnock}
         onSendTicket={ticket =>
           setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
         }
@@ -2252,6 +2423,101 @@ export default function Home() {
           setNotice(`Storefront "${cfg.storeName}" synced! Announcement, products & coupons updated.`);
         }}
       />
+
+      {/* Floating Real-Time Knock Notification Alert */}
+      {incomingKnock && (
+        <aside
+          aria-label="Incoming Customer Knock Alert"
+          className="support-knock-alert"
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="knock-bell-icon">
+                <Bell size={20} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="knock-pulse-badge">
+                    <span /> LIVE KNOCK
+                  </span>
+                  <small style={{ color: '#64748b', fontSize: '11px' }}>{incomingKnock.time}</small>
+                </div>
+                <b style={{ fontSize: '14px', color: '#1e293b', display: 'block', marginTop: '2px' }}>
+                  {incomingKnock.customerName}
+                </b>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setIncomingKnock(null)}
+              style={{ padding: '4px', color: '#94a3b8' }}
+              title="Dismiss alert"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div
+            style={{
+              background: '#f8fafc',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
+              {incomingKnock.subject}
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '12px',
+                color: '#64748b',
+                fontStyle: 'italic',
+                lineHeight: 1.4,
+              }}
+            >
+              &ldquo;{incomingKnock.message}&rdquo;
+            </p>
+            {incomingKnock.customerPhone && (
+              <small style={{ fontSize: '11px', color: '#0ea5e9', display: 'block', marginTop: '5px', fontWeight: 600 }}>
+                📞 {incomingKnock.customerPhone}
+              </small>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
+            <button
+              type="button"
+              onClick={() => setIncomingKnock(null)}
+              style={{
+                background: 'transparent',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#64748b',
+                cursor: 'pointer',
+              }}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className="knock-action-btn"
+              onClick={() => {
+                setTargetSupportTicketId(incomingKnock.id);
+                setShowSupport(true);
+                setIncomingKnock(null);
+              }}
+            >
+              <Headphones size={13} /> Open &amp; Reply to Customer &rarr;
+            </button>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

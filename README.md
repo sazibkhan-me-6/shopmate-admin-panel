@@ -14,10 +14,13 @@ This admin panel serves as the central command hub for the live customer-facing 
   - One-click Catalog Sync: Instantly sync all 12 products, 8 categories, and active gateways to the storefront schema.
   - JSON Configuration Export: One-click copy or download of full store JSON config for deployment.
 - **Cross-Origin REST APIs (CORS Enabled)**:
-  - `GET /api/store` - Returns catalog items, categories, announcement banner, promo coupons, and active payment gateways.
+  - `GET /api/store` - Returns catalog items, categories, announcement banner, promo coupons, payment gateways, and support details.
   - `POST /api/store` - Updates storefront configuration.
   - `GET /api/orders` - Fetches submitted orders.
   - `POST /api/orders` - Receives incoming checkout orders directly from `shopmate-ecommerce-kohl.vercel.app`.
+  - `GET /api/support` - Fetches live customer inquiries, tickets, and support configuration.
+  - `POST /api/support` - Receives customer live chat messages and inquiries directly from the website, or updates support config.
+  - `PATCH /api/support` - Sends admin replies to customers and updates ticket status (In Progress / Resolved).
 - **Aligned Catalog Data**:
   - Preloaded with the live storefront's 12 products (`iPhone 15 Pro Max`, `Sony WH-1000XM5`, `Nike Air Force 1`, `Apple Watch Series 9`, `Under Armour Backpack`, `MacBook Air M3`, `Premium Cotton T-Shirt`, `Minimal Lounge Sofa`, `Everyday Skincare Set`, `Adjustable Dumbbell Set`, `The Creative Mind`, `Classic Teddy Bear`).
   - Aligned 8 categories (`Electronics`, `Fashion`, `Home & Living`, `Beauty & Health`, `Sports & Fitness`, `Books`, `Toys & Games`, `Accessories`).
@@ -55,13 +58,14 @@ This admin panel serves as the central command hub for the live customer-facing 
     - **International Gateways** - PayPal & global Stripe multi-currency processing.
   - Per-gateway configuration: Sandbox Test Mode vs Live Production, transaction fees (%), and merchant account info.
 
-- **🎧 24/7 Customer Support & Help Desk:**
-  - Dedicated Support button in the topbar, sidebar management menu, and sidebar bottom help card.
-  - **Support Channels**:
+- **🎧 24/7 Live Customer Support & Storefront Bridge:**
+  - **Live Website Stream**: Real-time two-way connection with the live chat widget and contact desk on `https://shopmate-ecommerce-kohl.vercel.app/`.
+  - **Customer Inquiry Desk**: View incoming customer messages, bKash/Nagad verification requests, order delivery questions, and product inquiries.
+  - **Admin Live Reply**: Type and send replies directly to customers with quick reply templates and status tracking (`New`, `In Progress`, `Resolved`).
+  - **Official Channels Aligned**:
     - Direct Email support (`support@shopmate.com`)
-    - Toll-free Hotline (`+880 9600-123456`)
-    - WhatsApp Live Chat Desk (`+880 1700-998877`)
-  - **Support Ticket System**: Submit categorized tickets (Payment Gateway, Orders & Shipping, Catalogue, Account) with priority levels (Urgent, High, Normal) and auto-generated ticket IDs (`#TKT-XXXX`).
+    - Hotline & WhatsApp Desk: **`+880 1614703406`** (Banani, Dhaka)
+  - **Storefront Support Controls**: Manage the live storefront's support phone, WhatsApp number, email, operating hours, and live chat widget online/away availability directly from the admin panel.
   - **Knowledgebase / FAQs**: Instant answers to common store configuration questions.
 
 - **🏷️ Featured Categories Showcase & Full Category Management:**
@@ -142,7 +146,8 @@ shopmate-admin-panel/
 ├── app/
 │   ├── api/
 │   │   ├── orders/route.ts         # CORS REST API for receiving & listing store orders
-│   │   └── store/route.ts          # CORS REST API for syncing products, categories & banners
+│   │   ├── store/route.ts          # CORS REST API for syncing products, categories & banners
+│   │   └── support/route.ts        # CORS REST API for two-way live customer support & inquiries
 │   ├── globals.css                 # Custom design system & responsive styling
 │   ├── layout.tsx                  # Root Next.js layout & metadata
 │   └── page.tsx                    # Dashboard & storefront state orchestrator

@@ -450,6 +450,7 @@ export default function Home() {
   const [editingCustomer, setEditingCustomer] = useState<CustomerData | null>(null);
 
   const [showSupport, setShowSupport] = useState(false);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(1);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [showStorefrontControl, setShowStorefrontControl] = useState(false);
 
@@ -509,6 +510,27 @@ export default function Home() {
 
     syncLiveOrders();
     const timer = setInterval(syncLiveOrders, 8000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Real-time synchronization with incoming support inquiries from the website
+  useEffect(() => {
+    const syncLiveSupport = async () => {
+      try {
+        const res = await fetch('/api/support');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.unreadCount !== undefined) {
+            setUnreadSupportCount(json.unreadCount);
+          }
+        }
+      } catch (err) {
+        // quiet fallback
+      }
+    };
+
+    syncLiveSupport();
+    const timer = setInterval(syncLiveSupport, 10000);
     return () => clearInterval(timer);
   }, []);
 
@@ -876,7 +898,13 @@ export default function Home() {
         >
           <Headphones size={18} />
           <span>Customer Support</span>
-          <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>24/7</em>
+          {unreadSupportCount > 0 ? (
+            <em style={{ background: '#fee2e2', color: '#ef4444', fontWeight: 800 }}>
+              {unreadSupportCount} New
+            </em>
+          ) : (
+            <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>Live</em>
+          )}
         </button>
 
         <div className="sidebar-bottom">
@@ -971,11 +999,33 @@ export default function Home() {
               type="button"
               className="btn secondary support-top-btn"
               onClick={() => setShowSupport(true)}
-              title="Customer Support & Help Desk"
-              style={{ height: '34px', fontSize: '11px', padding: '0 10px', gap: '6px' }}
+              title="Customer Support & Help Desk (Connected to Main Website)"
+              style={{
+                height: '34px',
+                fontSize: '11px',
+                padding: '0 10px',
+                gap: '6px',
+                position: 'relative',
+              }}
             >
               <Headphones size={14} color="#22966b" />
-              <span>Support (24/7)</span>
+              <span>Customer Support</span>
+              {unreadSupportCount > 0 ? (
+                <span
+                  style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    borderRadius: '10px',
+                    padding: '1px 5px',
+                    fontSize: '9px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {unreadSupportCount}
+                </span>
+              ) : (
+                <span style={{ color: '#22966b', fontSize: '9px', fontWeight: 700 }}>24/7</span>
+              )}
             </button>
 
             <button
@@ -2169,6 +2219,7 @@ export default function Home() {
         onSendTicket={ticket =>
           setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
         }
+        onNotice={msg => setNotice(msg)}
       />
 
       {/* Payment Methods Control Modal */}

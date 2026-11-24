@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { INITIAL_200_PRODUCTS } from '../../../data/catalog200';
+
+export const dynamic = 'force-dynamic';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -6,12 +9,14 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// Central store data synchronized with shopmate-ecommerce storefront
+// Central store data synchronized with shopmate-ecommerce storefront (200 live products)
 let STORE_DATA: any = {
   storeName: 'ShopMate E-commerce',
   storeUrl: 'https://shopmate-ecommerce-kohl.vercel.app/',
   adminUrl: 'https://shopmate-admin-panel.vercel.app/',
   status: 'online',
+  productsCount: INITIAL_200_PRODUCTS.length,
+  products: INITIAL_200_PRODUCTS,
   announcement: {
     active: true,
     text: '🎉 Flash Sale! Flat 15% OFF across all tech & fashion — Code: SHOPMATE15',

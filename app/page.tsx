@@ -50,6 +50,7 @@ import CustomerSupportModal from '../components/CustomerSupportModal';
 import PaymentMethodsModal, { PaymentMethodItem } from '../components/PaymentMethodsModal';
 import CustomerModal, { CustomerData } from '../components/CustomerModal';
 import StorefrontControlModal, { StorefrontConfig } from '../components/StorefrontControlModal';
+import { INITIAL_200_PRODUCTS } from '../data/catalog200';
 
 export type Product = {
   id: number;
@@ -77,209 +78,64 @@ export type Order = {
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 };
 
-// Exact 12 products aligned with https://shopmate-ecommerce-kohl.vercel.app/
-const initialProducts: Product[] = [
-  {
-    id: 1,
-    name: 'iPhone 15 Pro Max',
-    sku: 'APL-IPH15PM',
-    category: 'Electronics',
-    price: 1299.0,
-    discountPercent: 15,
-    discountedPrice: 1099.0,
-    stock: 24,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 2,
-    name: 'Sony WH-1000XM5',
-    sku: 'SNY-WH1000',
-    category: 'Electronics',
-    price: 399.0,
-    discountPercent: 20,
-    discountedPrice: 319.0,
-    stock: 31,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 3,
-    name: 'Nike Air Force 1',
-    sku: 'NKE-AF1-01',
-    category: 'Fashion',
-    price: 119.0,
-    discountPercent: 25,
-    discountedPrice: 89.0,
-    stock: 45,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 4,
-    name: 'Apple Watch Series 9',
-    sku: 'APL-WTC9',
-    category: 'Electronics',
-    price: 499.0,
-    discountPercent: 18,
-    discountedPrice: 409.0,
-    stock: 19,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 5,
-    name: 'Under Armour Backpack',
-    sku: 'UAR-BP-005',
-    category: 'Accessories',
-    price: 58.0,
-    discountPercent: 22,
-    discountedPrice: 45.0,
-    stock: 52,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 6,
-    name: 'MacBook Air M3',
-    sku: 'APL-MBA-M3',
-    category: 'Electronics',
-    price: 1099.0,
-    discountPercent: 9,
-    discountedPrice: 999.0,
-    stock: 16,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 7,
-    name: 'Premium Cotton T-Shirt',
-    sku: 'UNQ-TS-007',
-    category: 'Fashion',
-    price: 39.0,
-    discountPercent: 25,
-    discountedPrice: 29.0,
-    stock: 70,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 8,
-    name: 'Minimal Lounge Sofa',
-    sku: 'NDH-SOFA-08',
-    category: 'Home & Living',
-    price: 799.0,
-    discountPercent: 12,
-    discountedPrice: 699.0,
-    stock: 8,
-    status: 'Low stock',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 9,
-    name: 'Everyday Skincare Set',
-    sku: 'GLB-SKIN-09',
-    category: 'Beauty & Health',
-    price: 79.0,
-    discountPercent: 25,
-    discountedPrice: 59.0,
-    stock: 37,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 10,
-    name: 'Adjustable Dumbbell Set',
-    sku: 'FTP-DMB-10',
-    category: 'Sports & Fitness',
-    price: 189.0,
-    discountPercent: 21,
-    discountedPrice: 149.0,
-    stock: 20,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 11,
-    name: 'The Creative Mind',
-    sku: 'PGN-BOK-11',
-    category: 'Books',
-    price: 25.0,
-    discountPercent: 24,
-    discountedPrice: 19.0,
-    stock: 100,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=700&q=85',
-  },
-  {
-    id: 12,
-    name: 'Classic Teddy Bear',
-    sku: 'PLT-TOY-12',
-    category: 'Toys & Games',
-    price: 32.0,
-    discountPercent: 25,
-    discountedPrice: 24.0,
-    stock: 60,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?auto=format&fit=crop&w=700&q=85',
-  },
-];
+// Full 200-product live catalogue (12 flagship + 188 curated products across 8 categories)
+const initialProducts: Product[] = INITIAL_200_PRODUCTS;
 
-// Exact 8 categories aligned with https://shopmate-ecommerce-kohl.vercel.app/
+// Exact 8 categories aligned with https://shopmate-ecommerce-kohl.vercel.app/ (25 products each = 200 total)
 const initialCategories: CategoryItem[] = [
   {
     id: 1,
     name: 'Electronics',
-    count: '4 products',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 2,
     name: 'Fashion',
-    count: '2 products',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 3,
     name: 'Home & Living',
-    count: '1 product',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 4,
     name: 'Beauty & Health',
-    count: '1 product',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 5,
     name: 'Sports & Fitness',
-    count: '1 product',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 6,
     name: 'Books',
-    count: '1 product',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 7,
     name: 'Toys & Games',
-    count: '1 product',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
   {
     id: 8,
     name: 'Accessories',
-    count: '1 product',
+    count: '25 products',
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80',
     featured: true,
   },
@@ -2649,126 +2505,296 @@ function ProductTable({
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   onEditProduct: (p: Product) => void;
 }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>PRODUCT</th>
-            <th>SKU</th>
-            <th>CATEGORY</th>
-            <th>PRICE & DISCOUNT</th>
-            <th>STOCK</th>
-            <th>STATUS</th>
-            <th>ACTIONS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map(p => {
-            const hasDiscount = (p.discountPercent || 0) > 0;
-            const salePrice =
-              p.discountedPrice ||
-              (hasDiscount ? p.price * (1 - (p.discountPercent || 0) / 100) : p.price);
+  const [catFilter, setCatFilter] = useState<string>('All');
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
-            return (
-              <tr key={p.id}>
-                <td>
-                  <div className="product-cell">
-                    <div className="product-thumb">
-                      {p.image ? (
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="product-img"
-                          onError={e => {
-                            (e.target as HTMLImageElement).style.display = 'none';
+  const uniqueCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      counts.set(p.category, (counts.get(p.category) || 0) + 1);
+    }
+    return Array.from(counts.entries());
+  }, [products]);
+
+  const categoryFiltered = useMemo(() => {
+    if (catFilter === 'All') return products;
+    return products.filter(p => p.category === catFilter);
+  }, [products, catFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(categoryFiltered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedProducts = useMemo(() => {
+    if (pageSize >= categoryFiltered.length) return categoryFiltered;
+    const start = (safePage - 1) * pageSize;
+    return categoryFiltered.slice(start, start + pageSize);
+  }, [categoryFiltered, safePage, pageSize]);
+
+  return (
+    <div>
+      {/* Category Filter Pills & Page Size Controls */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          marginBottom: '14px',
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setCatFilter('All');
+              setPage(1);
+            }}
+            style={{
+              padding: '5px 11px',
+              borderRadius: '16px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: catFilter === 'All' ? '1px solid #6b5ce7' : '1px solid #e2e8f0',
+              background: catFilter === 'All' ? '#6b5ce7' : '#fff',
+              color: catFilter === 'All' ? '#fff' : '#475569',
+            }}
+          >
+            All ({products.length})
+          </button>
+          {uniqueCategories.map(([cat, count]) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => {
+                setCatFilter(cat);
+                setPage(1);
+              }}
+              style={{
+                padding: '5px 11px',
+                borderRadius: '16px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: catFilter === cat ? '1px solid #6b5ce7' : '1px solid #e2e8f0',
+                background: catFilter === cat ? '#f0edff' : '#fff',
+                color: catFilter === cat ? '#6b5ce7' : '#475569',
+              }}
+            >
+              {cat} ({count})
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#64748b' }}>
+          <span>
+            Showing <b>{pagedProducts.length}</b> of <b>{categoryFiltered.length}</b>
+          </span>
+          <select
+            value={pageSize}
+            onChange={e => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            style={{
+              height: '28px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              padding: '0 8px',
+              fontSize: '11px',
+              fontFamily: 'inherit',
+            }}
+          >
+            <option value={25}>25 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
+            <option value={500}>Show All</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>PRODUCT</th>
+              <th>SKU</th>
+              <th>CATEGORY</th>
+              <th>PRICE & DISCOUNT</th>
+              <th>STOCK</th>
+              <th>STATUS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedProducts.map(p => {
+              const hasDiscount = (p.discountPercent || 0) > 0;
+              const salePrice =
+                p.discountedPrice ||
+                (hasDiscount ? p.price * (1 - (p.discountPercent || 0) / 100) : p.price);
+
+              return (
+                <tr key={p.id}>
+                  <td>
+                    <div className="product-cell">
+                      <div className="product-thumb">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            loading="lazy"
+                            className="product-img"
+                            onError={e => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span>{p.emoji || '📦'}</span>
+                        )}
+                      </div>
+                      <b>{p.name}</b>
+                    </div>
+                  </td>
+                  <td className="muted">{p.sku}</td>
+                  <td>{p.category}</td>
+                  <td>
+                    <div>
+                      <b style={{ color: hasDiscount ? '#1b7d56' : '#202033' }}>
+                        {money(salePrice)}
+                      </b>
+                      {hasDiscount && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginTop: '2px',
                           }}
-                        />
-                      ) : (
-                        <span>{p.emoji || '📦'}</span>
+                        >
+                          <span
+                            style={{
+                              textDecoration: 'line-through',
+                              color: '#9998aa',
+                              fontSize: '11px',
+                            }}
+                          >
+                            {money(p.price)}
+                          </span>
+                          <span
+                            style={{
+                              background: '#e3f7ed',
+                              color: '#1b7d56',
+                              fontWeight: 700,
+                              fontSize: '9px',
+                              padding: '1px 5px',
+                              borderRadius: '8px',
+                            }}
+                          >
+                            -{p.discountPercent}%
+                          </span>
+                        </div>
                       )}
                     </div>
-                    <b>{p.name}</b>
-                  </div>
-                </td>
-                <td className="muted">{p.sku}</td>
-                <td>{p.category}</td>
-                <td>
-                  <div>
-                    <b style={{ color: hasDiscount ? '#1b7d56' : '#202033' }}>
-                      {money(salePrice)}
-                    </b>
-                    {hasDiscount && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          marginTop: '2px',
-                        }}
+                  </td>
+                  <td>{p.stock}</td>
+                  <td>
+                    <span
+                      className={`status ${
+                        p.status === 'Active' ? 'green' : p.status === 'Low stock' ? 'orange' : 'gray'
+                      }`}
+                    >
+                      {p.status}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        className="row-action"
+                        title="Edit product"
+                        onClick={() => onEditProduct(p)}
+                        style={{ color: '#6b5ce7' }}
                       >
-                        <span
-                          style={{
-                            textDecoration: 'line-through',
-                            color: '#9998aa',
-                            fontSize: '11px',
-                          }}
-                        >
-                          {money(p.price)}
-                        </span>
-                        <span
-                          style={{
-                            background: '#e3f7ed',
-                            color: '#1b7d56',
-                            fontWeight: 700,
-                            fontSize: '9px',
-                            padding: '1px 5px',
-                            borderRadius: '8px',
-                          }}
-                        >
-                          -{p.discountPercent}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td>{p.stock}</td>
-                <td>
-                  <span
-                    className={`status ${
-                      p.status === 'Active' ? 'green' : p.status === 'Low stock' ? 'orange' : 'gray'
-                    }`}
-                  >
-                    {p.status}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <button
-                      type="button"
-                      className="row-action"
-                      title="Edit product"
-                      onClick={() => onEditProduct(p)}
-                      style={{ color: '#6b5ce7' }}
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="row-action"
-                      title="Remove product"
-                      onClick={() => setProducts(old => old.filter(x => x.id !== p.id))}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {products.length === 0 && <div className="empty">No products match your search.</div>}
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="row-action"
+                        title="Remove product"
+                        onClick={() => setProducts(old => old.filter(x => x.id !== p.id))}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {pagedProducts.length === 0 && <div className="empty">No products match your search.</div>}
+      </div>
+
+      {/* Pagination Bar */}
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '14px',
+            paddingTop: '12px',
+            borderTop: '1px solid #eeedf3',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            Page <b>{safePage}</b> of <b>{totalPages}</b> ({categoryFiltered.length} products)
+          </span>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={safePage <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              style={{ height: '30px', padding: '0 10px', fontSize: '11px' }}
+            >
+              ← Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPage(n)}
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: safePage === n ? '1px solid #6b5ce7' : '1px solid #e2e8f0',
+                  background: safePage === n ? '#6b5ce7' : '#fff',
+                  color: safePage === n ? '#fff' : '#475569',
+                }}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={safePage >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              style={{ height: '30px', padding: '0 10px', fontSize: '11px' }}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

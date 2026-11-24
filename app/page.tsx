@@ -2404,6 +2404,8 @@ export default function Home() {
               initialTab={supportInitialTab}
               onSimulateKnock={handleSimulateCustomerKnock}
               onAiStatusChange={setAiSupportEnabled}
+              adminProducts={products}
+              adminCategories={categories}
               onSendTicket={ticket =>
                 setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
               }
@@ -2462,6 +2464,8 @@ export default function Home() {
         initialTab={supportInitialTab}
         onSimulateKnock={handleSimulateCustomerKnock}
         onAiStatusChange={setAiSupportEnabled}
+        adminProducts={products}
+        adminCategories={categories}
         onSendTicket={ticket =>
           setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
         }

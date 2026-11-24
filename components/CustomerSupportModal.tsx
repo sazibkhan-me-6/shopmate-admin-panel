@@ -93,6 +93,8 @@ interface CustomerSupportModalProps {
   onSimulateKnock?: () => void;
   onAiStatusChange?: (enabled: boolean) => void;
   embedded?: boolean;
+  adminProducts?: any[];
+  adminCategories?: any[];
 }
 
 const FAQS = [
@@ -207,6 +209,8 @@ export default function CustomerSupportModal({
   onSimulateKnock,
   onAiStatusChange,
   embedded = false,
+  adminProducts,
+  adminCategories,
 }: CustomerSupportModalProps) {
   const [tab, setTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>(initialTab || 'inbox');
   const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
@@ -310,6 +314,62 @@ export default function CustomerSupportModal({
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const [catalogKnowledge, setCatalogKnowledge] = useState<{
+    storeUrl: string;
+    storeName: string;
+    productsCount: number;
+    categoriesCount: number;
+    categories: string[];
+    coupons: { code: string; details: string }[];
+    products: { name: string; category: string; price: number; oldPrice?: number; discountBadge?: string; stock: number }[];
+    lastSyncedAt: string;
+  }>({
+    storeUrl: 'https://shopmate-ecommerce-kohl.vercel.app/',
+    storeName: 'ShopMate — Smart Shopping, Better Living',
+    productsCount: 12,
+    categoriesCount: 8,
+    categories: ['Electronics', 'Fashion', 'Home & Living', 'Beauty & Health', 'Sports & Fitness', 'Books', 'Toys & Games', 'Accessories'],
+    coupons: [
+      { code: 'SAVE10', details: '10% instant discount on cart' },
+      { code: 'WELCOME20', details: '20% off (up to $20 discount)' },
+    ],
+    products: [],
+    lastSyncedAt: new Date().toISOString(),
+  });
+  const [isSyncingKnowledge, setIsSyncingKnowledge] = useState(false);
+
+  // Sync live Admin Panel products & categories into AI Knowledge Base
+  const handleSyncAdminKnowledge = async (silent = false) => {
+    setIsSyncingKnowledge(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync_admin_knowledge',
+          products: adminProducts && adminProducts.length > 0 ? adminProducts : undefined,
+          categories: adminCategories && adminCategories.length > 0 ? adminCategories : undefined,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.catalogKnowledge) {
+          setCatalogKnowledge(json.catalogKnowledge);
+        }
+        if (!silent) {
+          const msg = json.message || '✨ Live website & admin data synced into AI Automation!';
+          setAiSavedNotice(msg);
+          setTimeout(() => setAiSavedNotice(''), 4000);
+          onNotice?.(msg);
+        }
+      }
+    } catch (e) {
+      // fallback
+    } finally {
+      setIsSyncingKnowledge(false);
+    }
+  };
+
   // Load live support tickets & AI automation config from API
   const fetchLiveSupport = async () => {
     try {
@@ -334,6 +394,9 @@ export default function CustomerSupportModal({
           setEscalateInput((json.aiAutomation.autoEscalateKeywords || []).join(', '));
           onAiStatusChange?.(Boolean(json.aiAutomation.enabled));
         }
+        if (json.catalogKnowledge) {
+          setCatalogKnowledge(json.catalogKnowledge);
+        }
       }
     } catch (e) {
       // quiet fallback
@@ -345,6 +408,9 @@ export default function CustomerSupportModal({
   useEffect(() => {
     if (isOpen || embedded) {
       fetchLiveSupport();
+      if (adminProducts && adminProducts.length > 0) {
+        handleSyncAdminKnowledge(true);
+      }
       const timer = setInterval(fetchLiveSupport, 5000);
       return () => clearInterval(timer);
     }
@@ -1787,6 +1853,120 @@ export default function CustomerSupportModal({
               </div>
             </div>
 
+            {/* Synced Website & Admin Panel Knowledge Base Card */}
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid #ddd6fe',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                display: 'grid',
+                gap: '12px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <b style={{ fontSize: '13px', color: '#1e1b4b' }}>
+                      🌐 Synced Website &amp; Admin Panel Knowledge Base
+                    </b>
+                    <span
+                      style={{
+                        background: '#dcfce7',
+                        color: '#166534',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      ● Live Synced with shopmate-ecommerce-kohl.vercel.app
+                    </span>
+                  </div>
+                  <small style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                    AI automatically uses all live products, prices, discounts, stock, coupons, shipping &amp; policies to answer customer knocks instantly.
+                  </small>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => handleSyncAdminKnowledge(false)}
+                  disabled={isSyncingKnowledge}
+                  style={{
+                    height: '32px',
+                    fontSize: '11px',
+                    padding: '0 12px',
+                    gap: '6px',
+                    color: '#6b5ce7',
+                    borderColor: '#c4b5fd',
+                    background: '#f5f3ff',
+                    fontWeight: 700,
+                  }}
+                >
+                  <RefreshCw size={13} className={isSyncingKnowledge ? 'spin-animation' : ''} />
+                  {isSyncingKnowledge ? 'Syncing Data...' : 'Sync Admin & Website Data'}
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#6b5ce7', marginBottom: '4px' }}>
+                    📦 LIVE PRODUCTS ({catalogKnowledge.productsCount})
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#334155', lineHeight: 1.45 }}>
+                    {catalogKnowledge.products.length > 0
+                      ? catalogKnowledge.products
+                          .slice(0, 4)
+                          .map(p => `${p.name} ($${p.price})`)
+                          .join(', ') + (catalogKnowledge.products.length > 4 ? ` +${catalogKnowledge.products.length - 4} more` : '')
+                      : 'iPhone 15 Pro Max ($1099), MacBook Air M3 ($999), Sony WH-1000XM5 ($319), Nike Air Force 1 ($89) +8 more'}
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#22966b', marginBottom: '4px' }}>
+                    🎉 ACTIVE COUPONS &amp; OFFERS
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#334155', lineHeight: 1.45 }}>
+                    <b>SAVE10</b> (10% OFF), <b>WELCOME20</b> (20% / up to $20 OFF), Big Sale up to 50% OFF, Electronics 30% OFF.
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#0ea5e9', marginBottom: '4px' }}>
+                    🚚 SHIPPING, PAYMENTS &amp; RETURNS
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#334155', lineHeight: 1.45 }}>
+                    <b>FREE</b> shipping $50+ ($7.99 under $50) · bKash, Nagad, VISA, Mastercard, COD · 7-Day Return &amp; Official Warranty.
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#a855f7', marginBottom: '4px' }}>
+                    🏷️ CATEGORIES ({catalogKnowledge.categoriesCount}) &amp; CONTACT
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#334155', lineHeight: 1.45 }}>
+                    {catalogKnowledge.categories.slice(0, 5).join(', ')}... · Hotline: +880 1614703406 (Banani, Dhaka).
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Two-column layout: Settings & Live AI Sandbox */}
             <div
               style={{
@@ -1975,10 +2155,12 @@ export default function CustomerSupportModal({
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                   {[
-                    'ঢাকার বাইরে ডেলিভারি কবে পাবো?',
-                    'bKash TrxID verify please',
-                    'Product ki original warranty shoho?',
-                    'I received a damaged item, want refund',
+                    'iPhone 15 Pro Max এর দাম কত?',
+                    'কোন কুপন বা ডিসকাউন্ট কোড আছে?',
+                    'Nike Air Force 1 size 42 available?',
+                    'ডেলিভারি চার্জ কত এবং কবে পাবো?',
+                    'bKash / Cash on Delivery আছে?',
+                    'Order #SM-1048 status please',
                   ].map((sample, idx) => (
                     <button
                       key={idx}

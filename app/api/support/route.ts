@@ -29,6 +29,7 @@ export interface SupportTicket {
   status: 'New' | 'In Progress' | 'Resolved' | 'Closed';
   source: 'Storefront Live Chat' | 'Contact Form' | 'WhatsApp Request' | 'Admin Portal';
   createdAt: string;
+  updatedAt?: string;
   messages: SupportMessage[];
   unread: boolean;
   aiHandled?: boolean;
@@ -577,11 +578,17 @@ export async function OPTIONS() {
 }
 
 export async function GET() {
+  const sortedTickets = [...LIVE_SUPPORT_TICKETS].sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt).getTime() -
+      new Date(a.updatedAt || a.createdAt).getTime()
+  );
+
   return NextResponse.json(
     {
       success: true,
-      tickets: LIVE_SUPPORT_TICKETS,
-      unreadCount: LIVE_SUPPORT_TICKETS.filter(t => t.unread).length,
+      tickets: sortedTickets,
+      unreadCount: sortedTickets.filter(t => t.unread).length,
       config: SUPPORT_CONFIG,
       aiAutomation: AI_AUTOMATION_CONFIG,
       catalogKnowledge: {
@@ -767,6 +774,7 @@ export async function POST(req: Request) {
       status: aiHandled && AI_AUTOMATION_CONFIG.mode === 'autonomous' ? 'In Progress' : 'New',
       source: body.source || 'Storefront Live Chat',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       unread: true,
       aiHandled,
       messages: initialMessages,
@@ -874,7 +882,12 @@ export async function PATCH(req: Request) {
       ticket.unread = !body.markRead;
     }
 
-    LIVE_SUPPORT_TICKETS[ticketIndex] = ticket;
+    if (replyMessage) {
+      ticket.updatedAt = new Date().toISOString();
+    }
+
+    LIVE_SUPPORT_TICKETS.splice(ticketIndex, 1);
+    LIVE_SUPPORT_TICKETS.unshift(ticket);
 
     return NextResponse.json(
       {

@@ -52,6 +52,7 @@ export interface SupportTicket {
   status: 'New' | 'In Progress' | 'Resolved' | 'Closed';
   source: 'Storefront Live Chat' | 'Contact Form' | 'WhatsApp Request' | 'Admin Portal';
   createdAt: string;
+  updatedAt?: string;
   messages: SupportMessage[];
   unread: boolean;
   aiHandled?: boolean;
@@ -200,6 +201,61 @@ const INITIAL_TICKETS: SupportTicket[] = [
   },
 ];
 
+const CHAT_HISTORY_STORAGE_KEY = 'shopmate_support_chat_history';
+
+function sortTicketsRecentFirst(list: SupportTicket[]): SupportTicket[] {
+  return [...list].sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt).getTime() -
+      new Date(a.updatedAt || a.createdAt).getTime()
+  );
+}
+
+function mergeTicketHistories(localList: SupportTicket[], remoteList: SupportTicket[]): SupportTicket[] {
+  const byId = new Map<string, SupportTicket>();
+  for (const t of localList) {
+    byId.set(t.id, t);
+  }
+  for (const remote of remoteList) {
+    const existing = byId.get(remote.id);
+    if (!existing) {
+      byId.set(remote.id, remote);
+    } else {
+      // Merge messages without losing any history, deduplicated by id
+      const msgMap = new Map<string, SupportMessage>();
+      for (const m of existing.messages || []) msgMap.set(m.id, m);
+      for (const m of remote.messages || []) msgMap.set(m.id, m);
+      const mergedMessages = Array.from(msgMap.values());
+      const existingTime = new Date(existing.updatedAt || existing.createdAt).getTime();
+      const remoteTime = new Date(remote.updatedAt || remote.createdAt).getTime();
+      const hasNewRemoteMsg = mergedMessages.length > (existing.messages?.length || 0);
+      byId.set(remote.id, {
+        ...existing,
+        ...remote,
+        messages: mergedMessages,
+        unread: hasNewRemoteMsg ? remote.unread : existing.unread && remote.unread,
+        updatedAt:
+          remoteTime >= existingTime
+            ? remote.updatedAt || remote.createdAt
+            : existing.updatedAt || existing.createdAt,
+      });
+    }
+  }
+  return sortTicketsRecentFirst(Array.from(byId.values()));
+}
+
+function formatRelativeTime(iso?: string): string {
+  if (!iso) return 'Just now';
+  const diffSec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
 export default function CustomerSupportModal({
   isOpen,
   onClose,
@@ -214,8 +270,30 @@ export default function CustomerSupportModal({
   adminCategories,
 }: CustomerSupportModalProps) {
   const [tab, setTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>(initialTab || 'inbox');
-  const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
-  const [selectedTicketId, setSelectedTicketId] = useState<string>('#TKT-8841');
+  const [tickets, setTickets] = useState<SupportTicket[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return sortTicketsRecentFirst(parsed);
+          }
+        }
+      } catch (e) {}
+    }
+    return sortTicketsRecentFirst(INITIAL_TICKETS);
+  });
+  const [selectedTicketId, setSelectedTicketId] = useState<string>('');
+
+  // Persist full chat history to localStorage so it's never lost
+  useEffect(() => {
+    if (typeof window !== 'undefined' && tickets.length > 0) {
+      try {
+        localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(tickets));
+      } catch (e) {}
+    }
+  }, [tickets]);
 
   useEffect(() => {
     if ((isOpen || embedded) && initialTab) {
@@ -379,7 +457,7 @@ export default function CustomerSupportModal({
       if (res.ok) {
         const json = await res.json();
         if (json.tickets && Array.isArray(json.tickets)) {
-          setTickets(json.tickets);
+          setTickets(prev => mergeTicketHistories(prev, json.tickets));
         }
         if (json.config) {
           setSupportPhone(json.config.hotline || '+880 1614703406');
@@ -432,27 +510,30 @@ export default function CustomerSupportModal({
     const replyMsg = replyText.trim();
     setReplyText('');
 
-    // Optimistic update
-    const updatedTickets = tickets.map(t => {
-      if (t.id === selectedTicket.id) {
-        return {
-          ...t,
-          status: t.status === 'New' ? ('In Progress' as const) : t.status,
-          unread: false,
-          messages: [
-            ...t.messages,
-            {
-              id: 'msg-' + Date.now(),
-              sender: 'admin' as const,
-              senderName: 'ShopMate Admin Support',
-              text: replyMsg,
-              timestamp: 'Just now',
-            },
-          ],
-        };
-      }
-      return t;
-    });
+    // Optimistic update & bump to top of Recent Chat History
+    const updatedTickets = sortTicketsRecentFirst(
+      tickets.map(t => {
+        if (t.id === selectedTicket.id) {
+          return {
+            ...t,
+            status: t.status === 'New' ? ('In Progress' as const) : t.status,
+            unread: false,
+            updatedAt: new Date().toISOString(),
+            messages: [
+              ...t.messages,
+              {
+                id: 'msg-' + Date.now(),
+                sender: 'admin' as const,
+                senderName: 'ShopMate Admin Support',
+                text: replyMsg,
+                timestamp: 'Just now',
+              },
+            ],
+          };
+        }
+        return t;
+      })
+    );
 
     setTickets(updatedTickets);
 
@@ -747,14 +828,17 @@ export default function CustomerSupportModal({
     } catch (e) {}
   };
 
-  const filteredTickets = tickets.filter(t => {
-    const matchesFilter = filterStatus === 'all' || t.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchesSearch =
-      (t.customerName + ' ' + t.customerPhone + ' ' + t.subject + ' ' + t.id)
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredTickets = sortTicketsRecentFirst(
+    tickets.filter(t => {
+      const matchesFilter = filterStatus === 'all' || t.status.toLowerCase() === filterStatus.toLowerCase();
+      const allMsgsText = (t.messages || []).map(m => m.text).join(' ');
+      const matchesSearch =
+        (t.customerName + ' ' + t.customerPhone + ' ' + t.subject + ' ' + t.id + ' ' + allMsgsText)
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    })
+  );
 
   const unreadCount = tickets.filter(t => t.unread).length;
 
@@ -1245,6 +1329,36 @@ export default function CustomerSupportModal({
                 background: '#fff',
               }}
             >
+              {/* Recent Chat History Header */}
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderBottom: '1px solid #eeedf3',
+                  background: '#f5f3ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={13} color="#6b5ce7" />
+                  <b style={{ fontSize: '12px', color: '#1e1b4b' }}>Recent Chat History</b>
+                </div>
+                <span
+                  style={{
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    background: '#fff',
+                    color: '#6b5ce7',
+                    border: '1px solid #ddd6fe',
+                    padding: '2px 7px',
+                    borderRadius: '10px',
+                  }}
+                >
+                  Newest First ↑ ({filteredTickets.length})
+                </span>
+              </div>
+
               {/* Search & Status Filters */}
               <div style={{ padding: '10px', borderBottom: '1px solid #eeedf3', background: '#faf9fe' }}>
                 <div
@@ -1262,7 +1376,7 @@ export default function CustomerSupportModal({
                   <Search size={13} color="#94a3b8" />
                   <input
                     type="text"
-                    placeholder="Search inquiries, phone, id..."
+                    placeholder="Search chat history, name, message..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     style={{
@@ -1308,10 +1422,11 @@ export default function CustomerSupportModal({
                 </div>
               </div>
 
-              {/* Tickets Scroll List */}
-              <div style={{ overflowY: 'auto', flex: 1, maxHeight: '380px' }}>
-                {filteredTickets.map(tkt => {
+              {/* Recent Chat History Scroll List (Newest at Top) */}
+              <div style={{ overflowY: 'auto', flex: 1, maxHeight: embedded ? '520px' : '380px' }}>
+                {filteredTickets.map((tkt, idx) => {
                   const isSelected = selectedTicket?.id === tkt.id;
+                  const lastMsg = tkt.messages && tkt.messages.length > 0 ? tkt.messages[tkt.messages.length - 1] : null;
                   return (
                     <div
                       key={tkt.id}
@@ -1332,9 +1447,26 @@ export default function CustomerSupportModal({
                         transition: 'all .15s',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <b style={{ fontSize: '12px', color: '#1e293b' }}>{tkt.customerName}</b>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <b style={{ fontSize: '12px', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {tkt.customerName}
+                          </b>
+                          {idx === 0 && (
+                            <span
+                              style={{
+                                fontSize: '8px',
+                                fontWeight: 800,
+                                background: '#ede9fe',
+                                color: '#6b5ce7',
+                                padding: '1px 5px',
+                                borderRadius: '6px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              RECENT
+                            </span>
+                          )}
                           {tkt.unread && (
                             <span
                               style={{
@@ -1342,28 +1474,47 @@ export default function CustomerSupportModal({
                                 height: '6px',
                                 borderRadius: '50%',
                                 background: '#ef4444',
+                                flexShrink: 0,
                               }}
                             />
                           )}
                         </div>
-                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>{tkt.id}</span>
+                        <span style={{ fontSize: '10px', color: '#6b5ce7', fontWeight: 600, flexShrink: 0 }}>
+                          {formatRelativeTime(tkt.updatedAt || tkt.createdAt)}
+                        </span>
                       </div>
 
                       <div
                         style={{
                           fontSize: '11px',
-                          color: '#475569',
+                          color: '#334155',
                           fontWeight: 600,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          marginBottom: '6px',
+                          marginBottom: '3px',
                         }}
                       >
                         {tkt.subject}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {lastMsg && (
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            color: '#64748b',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            marginBottom: '6px',
+                          }}
+                        >
+                          {lastMsg.sender === 'customer' ? '👤 ' : '✨ '}
+                          {lastMsg.text}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                         <span
                           style={{
                             fontSize: '9px',
@@ -1528,7 +1679,7 @@ export default function CustomerSupportModal({
                     padding: '16px',
                     overflowY: 'auto',
                     flex: 1,
-                    maxHeight: '260px',
+                    maxHeight: embedded ? '420px' : '260px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',

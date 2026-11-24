@@ -22,6 +22,14 @@ import {
   Check,
   ArrowRight,
   Bell,
+  Bot,
+  Zap,
+  Plus,
+  Trash2,
+  Wand2,
+  Play,
+  Cpu,
+  Globe,
 } from 'lucide-react';
 
 export interface SupportMessage {
@@ -45,6 +53,34 @@ export interface SupportTicket {
   createdAt: string;
   messages: SupportMessage[];
   unread: boolean;
+  aiHandled?: boolean;
+}
+
+export interface AIKnowledgeRule {
+  id: string;
+  title: string;
+  keywords: string[];
+  reply: string;
+  active: boolean;
+  hitCount: number;
+}
+
+export interface AIAutomationConfig {
+  enabled: boolean;
+  mode: 'autonomous' | 'hybrid' | 'after_hours';
+  language: 'bilingual' | 'bengali' | 'english';
+  tone: 'friendly' | 'professional' | 'concise';
+  autoTagTickets: boolean;
+  autoEscalateKeywords: string[];
+  fallbackReplyEn: string;
+  fallbackReplyBn: string;
+  knowledgeRules: AIKnowledgeRule[];
+  stats: {
+    totalAutoReplies: number;
+    resolvedByAi: number;
+    avgResponseTimeSec: number;
+    escalatedToHuman: number;
+  };
 }
 
 interface CustomerSupportModalProps {
@@ -53,7 +89,9 @@ interface CustomerSupportModalProps {
   onSendTicket?: (ticket: { id: string; subject: string; category: string; message: string }) => void;
   onNotice?: (msg: string) => void;
   initialTicketId?: string | null;
+  initialTab?: 'inbox' | 'ai' | 'config' | 'create' | 'faq';
   onSimulateKnock?: () => void;
+  onAiStatusChange?: (enabled: boolean) => void;
 }
 
 const FAQS = [
@@ -164,11 +202,19 @@ export default function CustomerSupportModal({
   onSendTicket,
   onNotice,
   initialTicketId,
+  initialTab,
   onSimulateKnock,
+  onAiStatusChange,
 }: CustomerSupportModalProps) {
-  const [tab, setTab] = useState<'inbox' | 'config' | 'create' | 'faq'>('inbox');
+  const [tab, setTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>('inbox');
   const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
   const [selectedTicketId, setSelectedTicketId] = useState<string>('#TKT-8841');
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   useEffect(() => {
     if (initialTicketId) {
@@ -191,6 +237,65 @@ export default function CustomerSupportModal({
   const [autoWelcomeMessage, setAutoWelcomeMessage] = useState('👋 Welcome to ShopMate 24/7 Support! Our support team is online and ready to assist you.');
   const [savedNotice, setSavedNotice] = useState('');
 
+  // AI Automation State
+  const [aiConfig, setAiConfig] = useState<AIAutomationConfig>({
+    enabled: true,
+    mode: 'hybrid',
+    language: 'bilingual',
+    tone: 'friendly',
+    autoTagTickets: true,
+    autoEscalateKeywords: ['refund', 'damaged', 'broken', 'fraud', 'manager', 'cancel', 'রিফান্ড', 'নষ্ট', 'ক্যানসেল'],
+    fallbackReplyEn:
+      '✨ Hi! Thanks for contacting ShopMate Support. Our AI Assistant has logged your inquiry and notified a live specialist to assist you shortly. For urgent help, call +880 1614703406.',
+    fallbackReplyBn:
+      '✨ আসসালামু আলাইকুম! ShopMate সাপোর্টে যোগাযোগ করার জন্য ধন্যবাদ। আপনার মেসেজটি আমাদের AI সিস্টেমে রেকর্ড হয়েছে এবং একজন সাপোর্ট এজেন্ট খুব শীঘ্রই আপনাকে রিপ্লাই দেবেন। জরুরি প্রয়োজনে কল করুন: +880 1614703406।',
+    knowledgeRules: [
+      {
+        id: 'rule-delivery',
+        title: 'Delivery Time & Shipping Charge',
+        keywords: ['delivery', 'shipping', 'courier', 'dhaka', 'chattogram', 'sylhet', 'কবে', 'ডেলিভারি'],
+        reply: '🚚 ShopMate ডেলিভারি তথ্য: ঢাকার ভিতরে ২৪-৪৮ ঘণ্টা এবং ঢাকার বাইরে ২-৩ কার্যদিবসের মধ্যে Steadfast/Pathao কুরিয়ারে ডেলিভারি করা হয়। $50+ অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি!',
+        active: true,
+        hitCount: 42,
+      },
+      {
+        id: 'rule-payment',
+        title: 'bKash / Nagad & Cash on Delivery',
+        keywords: ['bkash', 'nagad', 'trxid', 'payment', 'cod', 'বিকাশ', 'নগদ', 'পেমেন্ট'],
+        reply: '💳 পেমেন্ট ও ভেরিফিকেশন: আমরা bKash, Nagad, SSLCommerz এবং সারা বাংলাদেশে Cash on Delivery (COD) সাপোর্ট করি। আপনার TrxID শেয়ার করলে আমাদের টিম ২ মিনিটের মধ্যে অর্ডার কনফার্ম করে দেবে।',
+        active: true,
+        hitCount: 31,
+      },
+    ],
+    stats: {
+      totalAutoReplies: 134,
+      resolvedByAi: 98,
+      avgResponseTimeSec: 1.2,
+      escalatedToHuman: 14,
+    },
+  });
+  const [aiSavedNotice, setAiSavedNotice] = useState('');
+  const [isSavingAi, setIsSavingAi] = useState(false);
+  const [escalateInput, setEscalateInput] = useState('refund, damaged, broken, fraud, manager, cancel, রিফান্ড, নষ্ট, ক্যানসেল');
+
+  // New AI Rule Form
+  const [showAddRule, setShowAddRule] = useState(false);
+  const [newRuleTitle, setNewRuleTitle] = useState('');
+  const [newRuleKeywords, setNewRuleKeywords] = useState('');
+  const [newRuleReply, setNewRuleReply] = useState('');
+
+  // AI Sandbox Tester State
+  const [sandboxPrompt, setSandboxPrompt] = useState('');
+  const [sandboxResult, setSandboxResult] = useState<{
+    reply: string;
+    matchedRuleTitle: string | null;
+    escalated: boolean;
+    detectedCategory: string;
+    detectedUrgency: string;
+  } | null>(null);
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const [isDraftingAi, setIsDraftingAi] = useState(false);
+
   // Ticket creation form
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState<'Orders & Shipping' | 'Payment Gateway' | 'Product Inquiry' | 'Returns & Refunds' | 'Technical Support' | 'General'>('Payment Gateway');
@@ -203,7 +308,7 @@ export default function CustomerSupportModal({
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load live support tickets from API on open and periodically
+  // Load live support tickets & AI automation config from API
   const fetchLiveSupport = async () => {
     try {
       setIsSyncing(true);
@@ -221,6 +326,11 @@ export default function CustomerSupportModal({
           setOperatingHours(json.config.operatingHours || '24/7 Live Assistance');
           setChatStatus(json.config.chatStatus || 'online');
           setAutoWelcomeMessage(json.config.autoWelcomeMessage || '');
+        }
+        if (json.aiAutomation) {
+          setAiConfig(json.aiAutomation);
+          setEscalateInput((json.aiAutomation.autoEscalateKeywords || []).join(', '));
+          onAiStatusChange?.(Boolean(json.aiAutomation.enabled));
         }
       }
     } catch (e) {
@@ -362,6 +472,162 @@ export default function CustomerSupportModal({
     }
   };
 
+  const persistAiConfig = async (nextConfig: AIAutomationConfig, noticeText?: string) => {
+    setAiConfig(nextConfig);
+    onAiStatusChange?.(nextConfig.enabled);
+    setIsSavingAi(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_ai_config',
+          aiConfig: nextConfig,
+        }),
+      });
+      if (res.ok) {
+        const msg = noticeText || '✨ AI Automation settings saved & synced to live storefront!';
+        setAiSavedNotice(msg);
+        setTimeout(() => setAiSavedNotice(''), 4000);
+        onNotice?.(msg);
+      }
+    } catch (e) {
+      // fallback
+    } finally {
+      setIsSavingAi(false);
+    }
+  };
+
+  const handleSaveAiConfig = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const keywords = escalateInput
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const updated: AIAutomationConfig = {
+      ...aiConfig,
+      autoEscalateKeywords: keywords,
+    };
+    await persistAiConfig(updated);
+  };
+
+  const handleToggleAiMaster = async () => {
+    const nextEnabled = !aiConfig.enabled;
+    const updated: AIAutomationConfig = { ...aiConfig, enabled: nextEnabled };
+    await persistAiConfig(
+      updated,
+      nextEnabled
+        ? '🤖 Customer Support AI Automation is now ACTIVE!'
+        : '⏸️ Customer Support AI Automation paused (Manual Mode).'
+    );
+  };
+
+  const handleAddAiRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRuleTitle.trim() || !newRuleKeywords.trim() || !newRuleReply.trim()) return;
+    const rule: AIKnowledgeRule = {
+      id: 'rule-' + Date.now(),
+      title: newRuleTitle.trim(),
+      keywords: newRuleKeywords
+        .split(',')
+        .map(k => k.trim())
+        .filter(Boolean),
+      reply: newRuleReply.trim(),
+      active: true,
+      hitCount: 0,
+    };
+    const updated: AIAutomationConfig = {
+      ...aiConfig,
+      knowledgeRules: [rule, ...aiConfig.knowledgeRules],
+    };
+    setNewRuleTitle('');
+    setNewRuleKeywords('');
+    setNewRuleReply('');
+    setShowAddRule(false);
+    await persistAiConfig(updated, `✨ AI Rule "${rule.title}" added & activated!`);
+  };
+
+  const handleToggleAiRule = async (ruleId: string) => {
+    const updated: AIAutomationConfig = {
+      ...aiConfig,
+      knowledgeRules: aiConfig.knowledgeRules.map(r =>
+        r.id === ruleId ? { ...r, active: !r.active } : r
+      ),
+    };
+    await persistAiConfig(updated, 'AI rule status updated.');
+  };
+
+  const handleDeleteAiRule = async (ruleId: string) => {
+    const updated: AIAutomationConfig = {
+      ...aiConfig,
+      knowledgeRules: aiConfig.knowledgeRules.filter(r => r.id !== ruleId),
+    };
+    await persistAiConfig(updated, 'AI rule removed.');
+  };
+
+  const handleTestAiSandbox = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!sandboxPrompt.trim()) return;
+    setIsTestingAi(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'test_ai_prompt',
+          prompt: sandboxPrompt.trim(),
+          customerName: 'Valued Customer',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSandboxResult({
+          reply: data.reply,
+          matchedRuleTitle: data.matchedRuleTitle,
+          escalated: data.escalated,
+          detectedCategory: data.detectedCategory,
+          detectedUrgency: data.detectedUrgency,
+        });
+      }
+    } catch (err) {
+      // fallback
+    } finally {
+      setIsTestingAi(false);
+    }
+  };
+
+  const handleAiSmartDraft = async () => {
+    if (!selectedTicket) return;
+    const customerMsgs = selectedTicket.messages.filter(m => m.sender === 'customer');
+    const latestText =
+      customerMsgs.length > 0
+        ? customerMsgs[customerMsgs.length - 1].text
+        : selectedTicket.subject;
+
+    setIsDraftingAi(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'test_ai_prompt',
+          prompt: latestText,
+          customerName: selectedTicket.customerName,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.reply) {
+          setReplyText(data.reply);
+        }
+      }
+    } catch (err) {
+      // fallback
+    } finally {
+      setIsDraftingAi(false);
+    }
+  };
+
   const handleCreateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
@@ -491,6 +757,28 @@ export default function CustomerSupportModal({
                   />
                   Connected to shopmate-ecommerce-kohl.vercel.app
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setTab('ai')}
+                  title="Click to configure Customer Support AI Automation"
+                  style={{
+                    background: aiConfig.enabled ? 'linear-gradient(135deg, #6b5ce7 0%, #8b5cf6 100%)' : '#f1f5f9',
+                    color: aiConfig.enabled ? '#fff' : '#64748b',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '3px 9px',
+                    borderRadius: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    border: aiConfig.enabled ? 'none' : '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    boxShadow: aiConfig.enabled ? '0 2px 8px rgba(107,92,231,0.3)' : 'none',
+                  }}
+                >
+                  <Bot size={11} />
+                  AI Automation: {aiConfig.enabled ? 'ON' : 'OFF'}
+                </button>
                 {unreadCount > 0 && (
                   <span
                     style={{
@@ -701,6 +989,35 @@ export default function CustomerSupportModal({
                 {unreadCount}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            className={`tab-pill ${tab === 'ai' ? 'active' : ''}`}
+            onClick={() => setTab('ai')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: tab === 'ai' ? '#6b5ce7' : '#f4f1ff',
+              color: tab === 'ai' ? '#fff' : '#6b5ce7',
+              borderColor: '#ddd6fe',
+              fontWeight: 700,
+            }}
+          >
+            <Sparkles size={14} /> AI Automation
+            <span
+              style={{
+                background: aiConfig.enabled ? '#22c55e' : '#94a3b8',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '1px 6px',
+                fontSize: '9px',
+                fontWeight: 800,
+              }}
+            >
+              {aiConfig.enabled ? 'ON' : 'OFF'}
+            </span>
           </button>
 
           <button
@@ -1048,26 +1365,30 @@ export default function CustomerSupportModal({
                 >
                   {selectedTicket.messages.map(msg => {
                     const isAdmin = msg.sender === 'admin';
+                    const isBot = msg.sender === 'bot';
+                    const alignRight = isAdmin || isBot;
                     return (
                       <div
                         key={msg.id}
                         style={{
-                          alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                          alignSelf: alignRight ? 'flex-end' : 'flex-start',
                           maxWidth: '82%',
                           display: 'flex',
                           flexDirection: 'column',
-                          alignItems: isAdmin ? 'flex-end' : 'flex-start',
+                          alignItems: alignRight ? 'flex-end' : 'flex-start',
                         }}
                       >
                         <div
                           style={{
                             fontSize: '10px',
-                            color: '#94a3b8',
+                            color: isBot ? '#7c3aed' : '#94a3b8',
                             marginBottom: '3px',
                             display: 'flex',
+                            alignItems: 'center',
                             gap: '4px',
                           }}
                         >
+                          {isBot && <Bot size={11} color="#7c3aed" />}
                           <b>{msg.senderName}</b>
                           <span>· {msg.timestamp}</span>
                         </div>
@@ -1075,14 +1396,22 @@ export default function CustomerSupportModal({
                           style={{
                             padding: '10px 14px',
                             borderRadius: '12px',
-                            background: isAdmin ? '#6b5ce7' : '#fff',
-                            color: isAdmin ? '#fff' : '#1e293b',
+                            background: isBot
+                              ? 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)'
+                              : isAdmin
+                                ? '#6b5ce7'
+                                : '#fff',
+                            color: isBot ? '#4c1d95' : isAdmin ? '#fff' : '#1e293b',
                             fontSize: '12px',
                             lineHeight: 1.5,
                             boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                            border: isAdmin ? 'none' : '1px solid #e2e8f0',
-                            borderBottomRightRadius: isAdmin ? '2px' : '12px',
-                            borderBottomLeftRadius: isAdmin ? '12px' : '2px',
+                            border: isBot
+                              ? '1px solid #d8b4fe'
+                              : isAdmin
+                                ? 'none'
+                                : '1px solid #e2e8f0',
+                            borderBottomRightRadius: alignRight ? '2px' : '12px',
+                            borderBottomLeftRadius: alignRight ? '12px' : '2px',
                           }}
                         >
                           {msg.text}
@@ -1105,6 +1434,30 @@ export default function CustomerSupportModal({
                     overflowX: 'auto',
                   }}
                 >
+                  <button
+                    type="button"
+                    onClick={handleAiSmartDraft}
+                    disabled={isDraftingAi}
+                    title="Let AI draft a context-aware reply based on customer's message"
+                    style={{
+                      border: '1px solid #c4b5fd',
+                      background: 'linear-gradient(135deg, #6b5ce7 0%, #8b5cf6 100%)',
+                      borderRadius: '12px',
+                      padding: '4px 10px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 6px rgba(107,92,231,0.25)',
+                    }}
+                  >
+                    <Wand2 size={11} /> {isDraftingAi ? 'Drafting...' : 'AI Smart Draft'}
+                  </button>
                   <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, flexShrink: 0 }}>
                     Quick Reply:
                   </span>
@@ -1186,6 +1539,642 @@ export default function CustomerSupportModal({
                 Select an inquiry from the list to view conversation.
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB AI: CUSTOMER SUPPORT AI AUTOMATION */}
+        {tab === 'ai' && (
+          <div style={{ display: 'grid', gap: '16px', flex: 1 }}>
+            {/* Master AI Automation Switch & Hero Card */}
+            <div
+              style={{
+                background: aiConfig.enabled
+                  ? 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)'
+                  : '#f8fafc',
+                border: aiConfig.enabled ? '1px solid #c4b5fd' : '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: aiConfig.enabled
+                      ? 'linear-gradient(135deg, #6b5ce7 0%, #8b5cf6 100%)'
+                      : '#94a3b8',
+                    color: '#fff',
+                    display: 'grid',
+                    placeItems: 'center',
+                    boxShadow: aiConfig.enabled ? '0 4px 12px rgba(107,92,231,0.3)' : 'none',
+                  }}
+                >
+                  <Bot size={22} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <b style={{ fontSize: '15px', color: '#1e1b4b' }}>
+                      Customer Support AI Automation Engine
+                    </b>
+                    <span
+                      style={{
+                        background: aiConfig.enabled ? '#22c55e' : '#94a3b8',
+                        color: '#fff',
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                      }}
+                    >
+                      {aiConfig.enabled ? '● ACTIVE' : '○ PAUSED'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#5b5b76' }}>
+                    Automatically replies to website customer knocks in Bangla &amp; English, categorizes tickets, and escalates urgent cases to admin.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleAiMaster}
+                disabled={isSavingAi}
+                style={{
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '10px 18px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  background: aiConfig.enabled ? '#ef4444' : '#22c55e',
+                  color: '#fff',
+                  boxShadow: '0 3px 10px rgba(0,0,0,0.12)',
+                }}
+              >
+                <Zap size={14} />
+                {aiConfig.enabled ? 'Turn OFF AI Auto-Reply' : 'Turn ON AI Auto-Reply'}
+              </button>
+            </div>
+
+            {aiSavedNotice && (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  background: '#e9f8f1',
+                  border: '1px solid #bbf7d0',
+                  color: '#166534',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <CheckCircle2 size={15} /> {aiSavedNotice}
+              </div>
+            )}
+
+            {/* AI Live Stats Row */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gap: '10px',
+              }}
+            >
+              <div style={{ background: '#fff', border: '1px solid #eeedf3', borderRadius: '10px', padding: '12px' }}>
+                <small style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>AI Auto-Replies Sent</small>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#6b5ce7', marginTop: '4px' }}>
+                  {aiConfig.stats.totalAutoReplies}
+                </div>
+              </div>
+              <div style={{ background: '#fff', border: '1px solid #eeedf3', borderRadius: '10px', padding: '12px' }}>
+                <small style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Resolved by AI</small>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#22966b', marginTop: '4px' }}>
+                  {aiConfig.stats.resolvedByAi}{' '}
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>
+                    ({Math.round((aiConfig.stats.resolvedByAi / Math.max(1, aiConfig.stats.totalAutoReplies)) * 100)}%)
+                  </span>
+                </div>
+              </div>
+              <div style={{ background: '#fff', border: '1px solid #eeedf3', borderRadius: '10px', padding: '12px' }}>
+                <small style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Avg AI Response Speed</small>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#0ea5e9', marginTop: '4px' }}>
+                  {aiConfig.stats.avgResponseTimeSec}s
+                </div>
+              </div>
+              <div style={{ background: '#fff', border: '1px solid #eeedf3', borderRadius: '10px', padding: '12px' }}>
+                <small style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Escalated to Human</small>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
+                  {aiConfig.stats.escalatedToHuman}
+                </div>
+              </div>
+            </div>
+
+            {/* Two-column layout: Settings & Live AI Sandbox */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+                gap: '16px',
+              }}
+            >
+              {/* Left: AI Behavior & Mode Configuration */}
+              <form
+                onSubmit={handleSaveAiConfig}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #eeedf3',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'grid',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f0f7', paddingBottom: '10px' }}>
+                  <Cpu size={16} color="#6b5ce7" />
+                  <b style={{ fontSize: '13px', color: '#1e293b' }}>AI Behavior &amp; Automation Controls</b>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Automation Mode
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {[
+                      { id: 'autonomous', label: '24/7 Autonomous', desc: 'Replies to all knocks' },
+                      { id: 'hybrid', label: 'Smart Hybrid', desc: 'FAQs + Admin Escalation' },
+                      { id: 'after_hours', label: 'After-Hours', desc: '11 PM – 9 AM BST' },
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setAiConfig(prev => ({ ...prev, mode: m.id as AIAutomationConfig['mode'] }))}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: aiConfig.mode === m.id ? '2px solid #6b5ce7' : '1px solid #e2e8f0',
+                          background: aiConfig.mode === m.id ? '#f5f3ff' : '#fff',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: aiConfig.mode === m.id ? '#6b5ce7' : '#334155' }}>
+                          {m.label}
+                        </div>
+                        <small style={{ fontSize: '9px', color: '#64748b' }}>{m.desc}</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <Globe size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                      Reply Language
+                    </label>
+                    <select
+                      value={aiConfig.language}
+                      onChange={e =>
+                        setAiConfig(prev => ({ ...prev, language: e.target.value as AIAutomationConfig['language'] }))
+                      }
+                      style={{
+                        width: '100%',
+                        height: '34px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        padding: '0 8px',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <option value="bilingual">Auto-Detect (Bangla + English)</option>
+                      <option value="bengali">Bengali Only (বাংলা)</option>
+                      <option value="english">English Only</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      AI Tone / Style
+                    </label>
+                    <select
+                      value={aiConfig.tone}
+                      onChange={e =>
+                        setAiConfig(prev => ({ ...prev, tone: e.target.value as AIAutomationConfig['tone'] }))
+                      }
+                      style={{
+                        width: '100%',
+                        height: '34px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        padding: '0 8px',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <option value="friendly">Friendly &amp; Warm</option>
+                      <option value="professional">Formal &amp; Professional</option>
+                      <option value="concise">Short &amp; Direct</option>
+                    </select>
+                  </div>
+                </div>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '12px',
+                    color: '#334155',
+                    background: '#f8fafc',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={aiConfig.autoTagTickets}
+                    onChange={e => setAiConfig(prev => ({ ...prev, autoTagTickets: e.target.checked }))}
+                  />
+                  <span>
+                    <b>Auto-Categorize &amp; Set Priority:</b> AI automatically tags Payment, Shipping, Returns &amp; Urgent tickets.
+                  </span>
+                </label>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                    Human Escalation Trigger Keywords (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={escalateInput}
+                    onChange={e => setEscalateInput(e.target.value)}
+                    placeholder="refund, damaged, cancel, manager, রিফান্ড..."
+                    style={{
+                      width: '100%',
+                      height: '34px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      padding: '0 10px',
+                      fontSize: '11px',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn primary"
+                  disabled={isSavingAi}
+                  style={{ height: '36px', width: '100%', justifyContent: 'center', gap: '6px' }}
+                >
+                  <Sparkles size={14} /> {isSavingAi ? 'Syncing AI Settings...' : 'Save & Sync AI Automation'}
+                </button>
+              </form>
+
+              {/* Right: Live Interactive AI Sandbox Tester */}
+              <div
+                style={{
+                  background: '#fff',
+                  border: '1px solid #eeedf3',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f0f7', paddingBottom: '10px' }}>
+                  <Play size={15} color="#22966b" />
+                  <b style={{ fontSize: '13px', color: '#1e293b' }}>Live AI Response Simulator (Test Sandbox)</b>
+                </div>
+
+                <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>
+                  Test how your Customer Support AI will instantly reply when a shopper knocks on the website in Bangla or English.
+                </p>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                  {[
+                    'ঢাকার বাইরে ডেলিভারি কবে পাবো?',
+                    'bKash TrxID verify please',
+                    'Product ki original warranty shoho?',
+                    'I received a damaged item, want refund',
+                  ].map((sample, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSandboxPrompt(sample)}
+                      style={{
+                        border: '1px solid #e2e8f0',
+                        background: '#f8fafc',
+                        borderRadius: '12px',
+                        padding: '4px 9px',
+                        fontSize: '10px',
+                        color: '#475569',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      “{sample}”
+                    </button>
+                  ))}
+                </div>
+
+                <form onSubmit={handleTestAiSandbox} style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    value={sandboxPrompt}
+                    onChange={e => setSandboxPrompt(e.target.value)}
+                    placeholder="Type a sample customer message..."
+                    style={{
+                      flex: 1,
+                      height: '36px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 10px',
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    className="btn primary"
+                    disabled={isTestingAi || !sandboxPrompt.trim()}
+                    style={{ height: '36px', padding: '0 14px', gap: '5px' }}
+                  >
+                    <Wand2 size={13} /> {isTestingAi ? 'Testing...' : 'Test AI'}
+                  </button>
+                </form>
+
+                {sandboxResult ? (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                      border: '1px solid #d8b4fe',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      display: 'grid',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#6b21a8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Bot size={13} /> ShopMate AI Instant Reply
+                      </span>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '9px', background: '#fff', color: '#6b5ce7', padding: '2px 6px', borderRadius: '8px', fontWeight: 700 }}>
+                          {sandboxResult.detectedCategory}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            background: sandboxResult.escalated ? '#fee2e2' : '#dcfce7',
+                            color: sandboxResult.escalated ? '#dc2626' : '#166534',
+                            padding: '2px 6px',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {sandboxResult.escalated ? '⚠️ Escalated to Admin' : '✅ AI Handled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#3b0764', lineHeight: 1.5 }}>
+                      {sandboxResult.reply}
+                    </div>
+                    <small style={{ fontSize: '10px', color: '#7e22ce' }}>
+                      Matched Rule: <b>{sandboxResult.matchedRuleTitle || 'Smart Bilingual Fallback'}</b>
+                    </small>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      flex: 1,
+                      minHeight: '95px',
+                      border: '1px dashed #cbd5e1',
+                      borderRadius: '10px',
+                      display: 'grid',
+                      placeItems: 'center',
+                      color: '#94a3b8',
+                      fontSize: '11px',
+                      textAlign: 'center',
+                      padding: '12px',
+                    }}
+                  >
+                    Click a sample message above or type your own to preview the instant AI response.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AI Knowledge Base & Auto-Reply Rules Manager */}
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid #eeedf3',
+                borderRadius: '12px',
+                padding: '16px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '12px',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                <div>
+                  <b style={{ fontSize: '13px', color: '#1e293b' }}>
+                    AI Knowledge &amp; Auto-Reply Rules ({aiConfig.knowledgeRules.length})
+                  </b>
+                  <small style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>
+                    Train your AI assistant with custom keyword triggers and instant automated answers.
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => setShowAddRule(!showAddRule)}
+                  style={{ height: '32px', fontSize: '11px', padding: '0 12px', gap: '5px', color: '#6b5ce7', borderColor: '#ddd6fe' }}
+                >
+                  <Plus size={14} /> {showAddRule ? 'Cancel' : 'Add New AI Rule'}
+                </button>
+              </div>
+
+              {showAddRule && (
+                <form
+                  onSubmit={handleAddAiRule}
+                  style={{
+                    background: '#faf9fe',
+                    border: '1px solid #ddd6fe',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    marginBottom: '14px',
+                    display: 'grid',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <input
+                      type="text"
+                      required
+                      value={newRuleTitle}
+                      onChange={e => setNewRuleTitle(e.target.value)}
+                      placeholder="Rule Title (e.g., Discount & Coupon Info)"
+                      style={{
+                        height: '34px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        padding: '0 10px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      required
+                      value={newRuleKeywords}
+                      onChange={e => setNewRuleKeywords(e.target.value)}
+                      placeholder="Trigger Keywords (comma separated: coupon, discount, অফার)"
+                      style={{
+                        height: '34px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        padding: '0 10px',
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+                  <textarea
+                    required
+                    rows={2}
+                    value={newRuleReply}
+                    onChange={e => setNewRuleReply(e.target.value)}
+                    placeholder="Exact AI auto-reply message to send when customer mentions these keywords..."
+                    style={{
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" className="btn primary" style={{ height: '32px', fontSize: '11px', padding: '0 14px' }}>
+                      <Plus size={13} /> Save AI Rule
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {aiConfig.knowledgeRules.map(rule => (
+                  <div
+                    key={rule.id}
+                    style={{
+                      border: '1px solid #eeedf3',
+                      borderRadius: '9px',
+                      padding: '10px 12px',
+                      background: rule.active ? '#fff' : '#f8fafc',
+                      opacity: rule.active ? 1 : 0.65,
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <b style={{ fontSize: '12px', color: '#1e293b' }}>{rule.title}</b>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            background: '#f0edff',
+                            color: '#6b5ce7',
+                            padding: '1px 7px',
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {rule.hitCount} auto-replies
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', margin: '5px 0' }}>
+                        {rule.keywords.slice(0, 8).map((kw, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              fontSize: '9px',
+                              background: '#f1f5f9',
+                              color: '#475569',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            #{kw}
+                          </span>
+                        ))}
+                      </div>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#475569', lineHeight: 1.45 }}>
+                        {rule.reply}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAiRule(rule.id)}
+                        style={{
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '5px 10px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: rule.active ? '#dcfce7' : '#e2e8f0',
+                          color: rule.active ? '#166534' : '#475569',
+                        }}
+                      >
+                        {rule.active ? 'Active' : 'Paused'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAiRule(rule.id)}
+                        title="Delete AI rule"
+                        style={{
+                          border: '1px solid #fecaca',
+                          background: '#fff',
+                          color: '#ef4444',
+                          borderRadius: '6px',
+                          padding: '5px',
+                          cursor: 'pointer',
+                          display: 'grid',
+                          placeItems: 'center',
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

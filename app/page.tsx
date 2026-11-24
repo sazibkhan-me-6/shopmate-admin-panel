@@ -39,6 +39,8 @@ import {
   Edit3,
   Star,
   Filter,
+  Bot,
+  Sparkles,
 } from 'lucide-react';
 
 import LoginScreen, { UserProfile } from '../components/LoginScreen';
@@ -450,6 +452,8 @@ export default function Home() {
   const [editingCustomer, setEditingCustomer] = useState<CustomerData | null>(null);
 
   const [showSupport, setShowSupport] = useState(false);
+  const [supportInitialTab, setSupportInitialTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>('inbox');
+  const [aiSupportEnabled, setAiSupportEnabled] = useState(true);
   const [unreadSupportCount, setUnreadSupportCount] = useState(1);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [showStorefrontControl, setShowStorefrontControl] = useState(false);
@@ -598,6 +602,9 @@ export default function Home() {
         const json = await res.json();
         if (json.unreadCount !== undefined) {
           setUnreadSupportCount(json.unreadCount);
+        }
+        if (json.aiAutomation && typeof json.aiAutomation.enabled === 'boolean') {
+          setAiSupportEnabled(json.aiAutomation.enabled);
         }
 
         const tickets = json.tickets as any[];
@@ -1058,6 +1065,7 @@ export default function Home() {
           type="button"
           className="nav-item"
           onClick={() => {
+            setSupportInitialTab('inbox');
             setShowSupport(true);
             setMobile(false);
           }}
@@ -1071,6 +1079,29 @@ export default function Home() {
           ) : (
             <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>Live</em>
           )}
+        </button>
+
+        <button
+          type="button"
+          className="nav-item"
+          onClick={() => {
+            setSupportInitialTab('ai');
+            setShowSupport(true);
+            setMobile(false);
+          }}
+          title="Configure Customer Support AI Automation & Auto-Reply Engine"
+        >
+          <Bot size={18} color="#6b5ce7" />
+          <span>Support AI Automation</span>
+          <em
+            style={{
+              background: aiSupportEnabled ? '#f0edff' : '#f1f5f9',
+              color: aiSupportEnabled ? '#6b5ce7' : '#64748b',
+              fontWeight: 800,
+            }}
+          >
+            {aiSupportEnabled ? 'AI ON' : 'OFF'}
+          </em>
         </button>
 
         <div className="sidebar-bottom">
@@ -2309,7 +2340,7 @@ export default function Home() {
                       <Headphones size={18} />
                     </div>
                     <div>
-                      <b style={{ fontSize: '13px' }}>Customer Support Desk</b>
+                      <b style={{ fontSize: '13px' }}>Customer Support &amp; AI Automation</b>
                       <small
                         style={{
                           color: '#22966b',
@@ -2318,21 +2349,37 @@ export default function Home() {
                           fontWeight: 700,
                         }}
                       >
-                        ● 24/7 Live Assistance
+                        ● 24/7 Live Assistance · AI Auto-Reply: {aiSupportEnabled ? 'ON' : 'OFF'}
                       </small>
                     </div>
                   </div>
                   <p style={{ fontSize: '11px', color: '#666', margin: '0 0 14px' }}>
-                    Connect with dedicated support via WhatsApp, toll-free hotline, email, or submit a support ticket.
+                    Manage live customer chats, WhatsApp &amp; hotline desk, and configure AI automated responses in Bangla &amp; English.
                   </p>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={() => setShowSupport(true)}
-                    style={{ width: '100%', height: '36px' }}
-                  >
-                    <Headphones size={15} color="#22966b" /> Open Customer Support
-                  </button>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() => {
+                        setSupportInitialTab('inbox');
+                        setShowSupport(true);
+                      }}
+                      style={{ width: '100%', height: '36px', fontSize: '11px' }}
+                    >
+                      <Headphones size={14} color="#22966b" /> Support Inbox
+                    </button>
+                    <button
+                      type="button"
+                      className="btn primary"
+                      onClick={() => {
+                        setSupportInitialTab('ai');
+                        setShowSupport(true);
+                      }}
+                      style={{ width: '100%', height: '36px', fontSize: '11px', gap: '5px' }}
+                    >
+                      <Sparkles size={14} /> AI Automation
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
@@ -2386,7 +2433,9 @@ export default function Home() {
           setTargetSupportTicketId(null);
         }}
         initialTicketId={targetSupportTicketId}
+        initialTab={supportInitialTab}
         onSimulateKnock={handleSimulateCustomerKnock}
+        onAiStatusChange={setAiSupportEnabled}
         onSendTicket={ticket =>
           setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
         }

@@ -92,6 +92,7 @@ interface CustomerSupportModalProps {
   initialTab?: 'inbox' | 'ai' | 'config' | 'create' | 'faq';
   onSimulateKnock?: () => void;
   onAiStatusChange?: (enabled: boolean) => void;
+  embedded?: boolean;
 }
 
 const FAQS = [
@@ -205,16 +206,17 @@ export default function CustomerSupportModal({
   initialTab,
   onSimulateKnock,
   onAiStatusChange,
+  embedded = false,
 }: CustomerSupportModalProps) {
-  const [tab, setTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>('inbox');
+  const [tab, setTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>(initialTab || 'inbox');
   const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
   const [selectedTicketId, setSelectedTicketId] = useState<string>('#TKT-8841');
 
   useEffect(() => {
-    if (isOpen && initialTab) {
+    if ((isOpen || embedded) && initialTab) {
       setTab(initialTab);
     }
-  }, [isOpen, initialTab]);
+  }, [isOpen, embedded, initialTab]);
 
   useEffect(() => {
     if (initialTicketId) {
@@ -341,18 +343,18 @@ export default function CustomerSupportModal({
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || embedded) {
       fetchLiveSupport();
-      const timer = setInterval(fetchLiveSupport, 10000);
+      const timer = setInterval(fetchLiveSupport, 5000);
       return () => clearInterval(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, embedded]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedTicketId, tickets]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !embedded) return null;
 
   const selectedTicket = tickets.find(t => t.id === selectedTicketId) || tickets[0];
 
@@ -689,20 +691,28 @@ export default function CustomerSupportModal({
 
   const unreadCount = tickets.filter(t => t.unread).length;
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal"
-        style={{
-          width: 'min(940px, 96%)',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '20px 24px',
-          overflowY: 'auto',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
+  const innerContent = (
+    <div
+      className={embedded ? 'panel full-panel' : 'modal'}
+      style={
+        embedded
+          ? {
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '22px 24px',
+            }
+          : {
+              width: 'min(960px, 96%)',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '20px 24px',
+              overflowY: 'auto',
+            }
+      }
+      onClick={e => e.stopPropagation()}
+    >
         {/* Header */}
         <div
           className="panel-head"
@@ -833,9 +843,11 @@ export default function CustomerSupportModal({
             >
               <RefreshCw size={16} className={isSyncing ? 'spin-animation' : ''} />
             </button>
-            <button type="button" className="icon-btn" onClick={onClose} aria-label="Close modal">
-              <X size={18} />
-            </button>
+            {!embedded && (
+              <button type="button" className="icon-btn" onClick={onClose} aria-label="Close modal">
+                <X size={18} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -956,6 +968,99 @@ export default function CustomerSupportModal({
             </div>
           </div>
         </div>
+
+        {/* Always-Visible AI Automation Quick Strip */}
+        {tab !== 'ai' && (
+          <div
+            style={{
+              background: aiConfig.enabled
+                ? 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)'
+                : '#f8fafc',
+              border: aiConfig.enabled ? '1px solid #c4b5fd' : '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: aiConfig.enabled
+                    ? 'linear-gradient(135deg, #6b5ce7 0%, #8b5cf6 100%)'
+                    : '#94a3b8',
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Bot size={18} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <b style={{ fontSize: '13px', color: '#1e1b4b' }}>
+                    Customer Support AI Automation
+                  </b>
+                  <span
+                    style={{
+                      background: aiConfig.enabled ? '#22c55e' : '#94a3b8',
+                      color: '#fff',
+                      fontSize: '9px',
+                      fontWeight: 800,
+                      padding: '2px 7px',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    {aiConfig.enabled ? '● AI AUTO-REPLY ON' : '○ PAUSED'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#6b5ce7', fontWeight: 700 }}>
+                    {aiConfig.stats.totalAutoReplies} Auto-Replies · {aiConfig.stats.avgResponseTimeSec}s Speed
+                  </span>
+                </div>
+                <small style={{ fontSize: '11px', color: '#5b5b76', display: 'block', marginTop: '2px' }}>
+                  24/7 Bangla &amp; English AI auto-responder, smart ticket tagging &amp; custom knowledge rules.
+                </small>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleToggleAiMaster}
+                disabled={isSavingAi}
+                style={{
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '7px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: aiConfig.enabled ? '#fee2e2' : '#dcfce7',
+                  color: aiConfig.enabled ? '#dc2626' : '#166534',
+                }}
+              >
+                {aiConfig.enabled ? 'Pause AI' : 'Enable AI'}
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => setTab('ai')}
+                style={{ height: '32px', fontSize: '11px', padding: '0 12px', gap: '5px' }}
+              >
+                <Sparkles size={13} /> Open AI Automation Settings
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div
@@ -2483,7 +2588,16 @@ export default function CustomerSupportModal({
             ))}
           </div>
         )}
-      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return innerContent;
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      {innerContent}
     </div>
   );
 }

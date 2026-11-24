@@ -1063,10 +1063,11 @@ export default function Home() {
 
         <button
           type="button"
-          className="nav-item"
+          className={section === 'Customer Support' && supportInitialTab !== 'ai' ? 'nav-item active' : 'nav-item'}
           onClick={() => {
             setSupportInitialTab('inbox');
-            setShowSupport(true);
+            setSection('Customer Support');
+            setShowSupport(false);
             setMobile(false);
           }}
         >
@@ -1083,10 +1084,11 @@ export default function Home() {
 
         <button
           type="button"
-          className="nav-item"
+          className={section === 'Customer Support' && supportInitialTab === 'ai' ? 'nav-item active' : 'nav-item'}
           onClick={() => {
             setSupportInitialTab('ai');
-            setShowSupport(true);
+            setSection('Customer Support');
+            setShowSupport(false);
             setMobile(false);
           }}
           title="Configure Customer Support AI Automation & Auto-Reply Engine"
@@ -1107,7 +1109,11 @@ export default function Home() {
         <div className="sidebar-bottom">
           <div
             className="help"
-            onClick={() => setShowSupport(true)}
+            onClick={() => {
+              setSupportInitialTab('inbox');
+              setSection('Customer Support');
+              setMobile(false);
+            }}
             style={{ cursor: 'pointer' }}
             title="Click to open Customer Support"
           >
@@ -1195,8 +1201,11 @@ export default function Home() {
             <button
               type="button"
               className="btn secondary support-top-btn"
-              onClick={() => setShowSupport(true)}
-              title="Customer Support & Help Desk (Connected to Main Website)"
+              onClick={() => {
+                setSupportInitialTab('inbox');
+                setSection('Customer Support');
+              }}
+              title="Customer Support & AI Automation (Connected to Main Website)"
               style={{
                 height: '34px',
                 fontSize: '11px',
@@ -2362,7 +2371,7 @@ export default function Home() {
                       className="btn secondary"
                       onClick={() => {
                         setSupportInitialTab('inbox');
-                        setShowSupport(true);
+                        setSection('Customer Support');
                       }}
                       style={{ width: '100%', height: '36px', fontSize: '11px' }}
                     >
@@ -2373,7 +2382,7 @@ export default function Home() {
                       className="btn primary"
                       onClick={() => {
                         setSupportInitialTab('ai');
-                        setShowSupport(true);
+                        setSection('Customer Support');
                       }}
                       style={{ width: '100%', height: '36px', fontSize: '11px', gap: '5px' }}
                     >
@@ -2383,6 +2392,23 @@ export default function Home() {
                 </div>
               </div>
             </section>
+          )}
+
+          {/* SECTION: Customer Support & AI Automation Full Page */}
+          {section === 'Customer Support' && (
+            <CustomerSupportModal
+              isOpen={true}
+              embedded={true}
+              onClose={() => setSection('Overview')}
+              initialTicketId={targetSupportTicketId}
+              initialTab={supportInitialTab}
+              onSimulateKnock={handleSimulateCustomerKnock}
+              onAiStatusChange={setAiSupportEnabled}
+              onSendTicket={ticket =>
+                setNotice(`Support ticket ${ticket.id} submitted! A support agent has been assigned.`)
+              }
+              onNotice={msg => setNotice(msg)}
+            />
           )}
 
           <footer>
@@ -2558,7 +2584,9 @@ export default function Home() {
               className="knock-action-btn"
               onClick={() => {
                 setTargetSupportTicketId(incomingKnock.id);
-                setShowSupport(true);
+                setSupportInitialTab('inbox');
+                setSection('Customer Support');
+                setShowSupport(false);
                 setIncomingKnock(null);
               }}
             >

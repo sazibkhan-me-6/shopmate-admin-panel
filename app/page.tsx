@@ -421,6 +421,46 @@ export default function Home() {
     } catch (e) {}
   }, [categories]);
 
+  // Automatic Real-Time Broadcast to Main Website (https://shopmate-ecommerce-kohl.vercel.app/)
+  // Whenever products or categories are added, edited, or deleted in Admin Panel,
+  // instantly push to /api/store AND /api/support AI Knowledge Base!
+  const hasMountedStoreSyncRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (!hasMountedStoreSyncRef.current) {
+      hasMountedStoreSyncRef.current = true;
+      return;
+    }
+
+    const pushToLiveWebsite = async () => {
+      try {
+        await Promise.all([
+          fetch('/api/store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              products,
+              categories,
+              productsCount: products.length,
+            }),
+          }),
+          fetch('/api/support', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'sync_admin_knowledge',
+              products,
+              categories,
+            }),
+          }),
+        ]);
+      } catch (err) {
+        // silent fallback
+      }
+    };
+
+    pushToLiveWebsite();
+  }, [products, categories]);
+
   // Real-time synchronization with incoming orders from the website
   useEffect(() => {
     const syncLiveOrders = async () => {

@@ -7,7 +7,19 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
 };
+
+const DEFAULT_CATEGORIES = [
+  { id: 1, name: 'Electronics', count: '25 products', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 2, name: 'Fashion', count: '25 products', image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 3, name: 'Home & Living', count: '25 products', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 4, name: 'Beauty & Health', count: '25 products', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 5, name: 'Sports & Fitness', count: '25 products', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 6, name: 'Books', count: '25 products', image: 'https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 7, name: 'Toys & Games', count: '25 products', image: 'https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=500&q=80', featured: true },
+  { id: 8, name: 'Accessories', count: '25 products', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80', featured: true },
+];
 
 // Central store data synchronized with shopmate-ecommerce storefront (200 live products)
 let STORE_DATA: any = {
@@ -17,6 +29,7 @@ let STORE_DATA: any = {
   status: 'online',
   productsCount: INITIAL_200_PRODUCTS.length,
   products: INITIAL_200_PRODUCTS,
+  categories: DEFAULT_CATEGORIES,
   announcement: {
     active: true,
     text: '🎉 Flash Sale! Flat 15% OFF across all tech & fashion — Code: SHOPMATE15',
@@ -67,6 +80,7 @@ export async function POST(req: Request) {
     STORE_DATA = {
       ...STORE_DATA,
       ...body,
+      productsCount: Array.isArray(body.products) ? body.products.length : STORE_DATA.productsCount,
       lastUpdated: new Date().toISOString(),
     };
 

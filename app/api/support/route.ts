@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
 };
 
 export interface SupportMessage {
@@ -12,6 +15,7 @@ export interface SupportMessage {
   senderName: string;
   text: string;
   timestamp: string;
+  isAi?: boolean;
 }
 
 export interface SupportTicket {
@@ -693,7 +697,7 @@ export async function POST(req: Request) {
     const customerName = body.customerName || body.name || 'Storefront Visitor';
     const customerText = body.message || (body.messages?.[0]?.text ?? body.subject ?? '');
 
-    const initialMessages: SupportMessage[] = body.message
+    const customerOnlyMessages: SupportMessage[] = body.message
       ? [
           {
             id: 'msg-' + Date.now(),
@@ -704,6 +708,8 @@ export async function POST(req: Request) {
           },
         ]
       : body.messages || [];
+
+    const initialMessages: SupportMessage[] = [...customerOnlyMessages];
 
     let finalCategory: SupportTicket['category'] = body.category || 'General';
     let finalUrgency: SupportTicket['urgency'] = body.urgency || 'High';
@@ -718,19 +724,21 @@ export async function POST(req: Request) {
         finalUrgency = aiResult.detectedUrgency;
       }
 
-      // In hybrid mode, always reply to matched FAQs or give acknowledgment
+      // In autonomous/after_hours/hybrid mode, send AI reply
       const shouldAutoReply =
         AI_AUTOMATION_CONFIG.mode === 'autonomous' ||
         AI_AUTOMATION_CONFIG.mode === 'after_hours' ||
         (AI_AUTOMATION_CONFIG.mode === 'hybrid' && (aiResult.matchedRuleTitle !== null || !aiResult.escalated));
 
       if (shouldAutoReply) {
+        // Use sender: 'admin' with isAi: true so the live storefront widget (which polls sender === 'admin') displays the AI reply!
         initialMessages.push({
-          id: 'msg-ai-' + (Date.now() + 1),
-          sender: 'bot',
+          id: 'msg-ai-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          sender: 'admin',
           senderName: 'ShopMate AI Assistant ✨',
           text: aiResult.reply,
           timestamp: 'Just now (AI Auto-Reply)',
+          isAi: true,
         });
         aiHandled = true;
         AI_AUTOMATION_CONFIG.stats.totalAutoReplies += 1;
@@ -768,11 +776,17 @@ export async function POST(req: Request) {
 
     console.log(`[ShopMate Support] New inquiry ${newTicket.id} received from ${newTicket.customerName} (AI Handled: ${aiHandled})`);
 
+    // IMPORTANT: Return only customerOnlyMessages in the POST response so the storefront widget
+    // does NOT add the AI auto-reply ID to its "already seen" Set; on its next GET poll (3s),
+    // it will see the fresh AI message ID with sender === 'admin' and render it in the customer's chat!
     return NextResponse.json(
       {
         success: true,
         message: 'Support ticket submitted to admin desk successfully',
-        ticket: newTicket,
+        ticket: {
+          ...newTicket,
+          messages: customerOnlyMessages,
+        },
         aiHandled,
       },
       { status: 201, headers: CORS_HEADERS }
@@ -785,11 +799,11 @@ export async function POST(req: Request) {
   }
 }
 
-// Admin replying to customer or updating ticket status
+// Admin replying to customer, customer sending follow-up message, or updating ticket status
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { ticketId, replyMessage, status, senderName } = body;
+    const { ticketId, replyMessage, status, senderName, sender } = body;
 
     const ticketIndex = LIVE_SUPPORT_TICKETS.findIndex(t => t.id === ticketId);
     if (ticketIndex === -1) {
@@ -802,18 +816,57 @@ export async function PATCH(req: Request) {
     const ticket = LIVE_SUPPORT_TICKETS[ticketIndex];
 
     if (replyMessage) {
+      const isCustomerFollowUp = sender === 'customer';
       ticket.messages.push({
-        id: 'msg-' + Date.now(),
-        sender: 'admin',
-        senderName: senderName || 'ShopMate Admin Support',
+        id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
+        sender: isCustomerFollowUp ? 'customer' : 'admin',
+        senderName: senderName || (isCustomerFollowUp ? ticket.customerName : 'ShopMate Admin Support'),
         text: replyMessage,
         timestamp: 'Just now',
       });
-      ticket.status = status || 'In Progress';
-      ticket.unread = false;
+
+      if (isCustomerFollowUp) {
+        ticket.unread = true;
+        ticket.status = status || 'New';
+
+        // Trigger AI Automation instant reply for customer follow-up messages too!
+        if (AI_AUTOMATION_CONFIG.enabled) {
+          const aiResult = generateAIAutoReply(replyMessage, senderName || ticket.customerName);
+          const shouldAutoReply =
+            AI_AUTOMATION_CONFIG.mode === 'autonomous' ||
+            AI_AUTOMATION_CONFIG.mode === 'after_hours' ||
+            (AI_AUTOMATION_CONFIG.mode === 'hybrid' && (aiResult.matchedRuleTitle !== null || !aiResult.escalated));
+
+          if (shouldAutoReply) {
+            ticket.messages.push({
+              id: 'msg-ai-' + (Date.now() + 1) + '-' + Math.random().toString(36).slice(2, 6),
+              sender: 'admin',
+              senderName: 'ShopMate AI Assistant ✨',
+              text: aiResult.reply,
+              timestamp: 'Just now (AI Auto-Reply)',
+              isAi: true,
+            });
+            ticket.aiHandled = true;
+            AI_AUTOMATION_CONFIG.stats.totalAutoReplies += 1;
+            if (aiResult.matchedRuleTitle) {
+              const ruleObj = AI_AUTOMATION_CONFIG.knowledgeRules.find(r => r.title === aiResult.matchedRuleTitle);
+              if (ruleObj) ruleObj.hitCount += 1;
+              if (!aiResult.escalated) {
+                AI_AUTOMATION_CONFIG.stats.resolvedByAi += 1;
+              }
+            }
+          }
+          if (aiResult.escalated) {
+            AI_AUTOMATION_CONFIG.stats.escalatedToHuman += 1;
+          }
+        }
+      } else {
+        ticket.status = status || 'In Progress';
+        ticket.unread = false;
+      }
     }
 
-    if (status) {
+    if (status && !replyMessage) {
       ticket.status = status;
     }
 

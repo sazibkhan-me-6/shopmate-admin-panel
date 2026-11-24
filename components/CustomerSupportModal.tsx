@@ -38,6 +38,7 @@ export interface SupportMessage {
   senderName: string;
   text: string;
   timestamp: string;
+  isAi?: boolean;
 }
 
 export interface SupportTicket {
@@ -1535,8 +1536,8 @@ export default function CustomerSupportModal({
                   }}
                 >
                   {selectedTicket.messages.map(msg => {
-                    const isAdmin = msg.sender === 'admin';
-                    const isBot = msg.sender === 'bot';
+                    const isBot = msg.sender === 'bot' || Boolean(msg.isAi) || (msg.senderName || '').includes('AI');
+                    const isAdmin = msg.sender === 'admin' && !isBot;
                     const alignRight = isAdmin || isBot;
                     return (
                       <div

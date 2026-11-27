@@ -39,7 +39,6 @@ import {
   Edit3,
   Star,
   Filter,
-  Bot,
   Sparkles,
   LayoutGrid,
   List,
@@ -961,13 +960,14 @@ export default function Home() {
 
         <button
           type="button"
-          className={section === 'Customer Support' && supportInitialTab !== 'ai' ? 'nav-item active' : 'nav-item'}
+          className={section === 'Customer Support' ? 'nav-item active' : 'nav-item'}
           onClick={() => {
             setSupportInitialTab('inbox');
             setSection('Customer Support');
             setShowSupport(false);
             setMobile(false);
           }}
+          title="Customer Support & AI Automation"
         >
           <Headphones size={18} />
           <span>Customer Support</span>
@@ -976,32 +976,10 @@ export default function Home() {
               {unreadSupportCount} New
             </em>
           ) : (
-            <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>Live</em>
+            <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>
+              {aiSupportEnabled ? 'AI Live' : 'Live'}
+            </em>
           )}
-        </button>
-
-        <button
-          type="button"
-          className={section === 'Customer Support' && supportInitialTab === 'ai' ? 'nav-item active' : 'nav-item'}
-          onClick={() => {
-            setSupportInitialTab('ai');
-            setSection('Customer Support');
-            setShowSupport(false);
-            setMobile(false);
-          }}
-          title="Configure Customer Support AI Automation & Auto-Reply Engine"
-        >
-          <Bot size={18} color="#6b5ce7" />
-          <span>Support AI Automation</span>
-          <em
-            style={{
-              background: aiSupportEnabled ? '#f0edff' : '#f1f5f9',
-              color: aiSupportEnabled ? '#6b5ce7' : '#64748b',
-              fontWeight: 800,
-            }}
-          >
-            {aiSupportEnabled ? 'AI ON' : 'OFF'}
-          </em>
         </button>
 
         <div className="sidebar-bottom">

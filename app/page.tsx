@@ -534,6 +534,103 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
+  // Load saved customers from localStorage on mount & sync live website account sign-ups in real time
+  const knownCustomerEmailsRef = useRef<Set<string>>(
+    new Set(initialCustomers.map(c => c.email.toLowerCase()))
+  );
+  const isFirstCustomerSyncRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    try {
+      const savedCust = localStorage.getItem('shopmate_admin_customers');
+      if (savedCust) {
+        const parsed = JSON.parse(savedCust);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCustomers(parsed);
+          parsed.forEach((c: CustomerData) => knownCustomerEmailsRef.current.add(c.email.toLowerCase()));
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shopmate_admin_customers', JSON.stringify(customers));
+    } catch {}
+  }, [customers]);
+
+  useEffect(() => {
+    const syncLiveCustomers = async () => {
+      try {
+        const res = await fetch('/api/customers', { cache: 'no-store' });
+        if (!res.ok) return;
+        const json = await res.json();
+        const remoteList = json.customers as CustomerData[];
+        if (!Array.isArray(remoteList) || remoteList.length === 0) {
+          isFirstCustomerSyncRef.current = false;
+          return;
+        }
+
+        const brandNewNames: string[] = [];
+        setCustomers(prev => {
+          const byEmail = new Map<string, CustomerData>();
+          prev.forEach(c => byEmail.set(c.email.toLowerCase(), c));
+
+          let changed = false;
+          const newlyAdded: CustomerData[] = [];
+
+          for (const rc of remoteList) {
+            const key = (rc.email || '').toLowerCase();
+            if (!key) continue;
+            const existing = byEmail.get(key);
+            if (!existing) {
+              newlyAdded.push(rc);
+              byEmail.set(key, rc);
+              changed = true;
+              if (!isFirstCustomerSyncRef.current && !knownCustomerEmailsRef.current.has(key)) {
+                brandNewNames.push(rc.name);
+              }
+              knownCustomerEmailsRef.current.add(key);
+            } else if (
+              existing.name !== rc.name ||
+              existing.phone !== rc.phone ||
+              existing.address !== rc.address
+            ) {
+              byEmail.set(key, {
+                ...existing,
+                name: rc.name,
+                phone: rc.phone,
+                address: rc.address,
+                avatar: rc.avatar || existing.avatar,
+              });
+              changed = true;
+            }
+          }
+
+          if (!changed) return prev;
+          const updatedExisting = prev.map(c => byEmail.get(c.email.toLowerCase()) || c);
+          return [...newlyAdded, ...updatedExisting];
+        });
+
+        if (brandNewNames.length > 0) {
+          setNotice(`👤 New customer registered on website: ${brandNewNames[0]}!`);
+        }
+        isFirstCustomerSyncRef.current = false;
+      } catch {
+        // quiet fallback
+      }
+    };
+
+    syncLiveCustomers();
+    const timer = setInterval(syncLiveCustomers, 4000);
+    const onFocus = () => syncLiveCustomers();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
   // Real-time synchronization & instant notification when customer knocks on support from the website
   useEffect(() => {
     const syncLiveSupport = async () => {

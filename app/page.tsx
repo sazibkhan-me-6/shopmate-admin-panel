@@ -312,6 +312,50 @@ export default function Home() {
   const [supportInitialTab, setSupportInitialTab] = useState<'inbox' | 'ai' | 'config' | 'create' | 'faq'>('inbox');
   const [aiSupportEnabled, setAiSupportEnabled] = useState(true);
   const [unreadSupportCount, setUnreadSupportCount] = useState(1);
+
+  // Social Media Links state (persisted in localStorage & synced live to storefront footer)
+  const [socialLinks, setSocialLinks] = useState<
+    { id: string; platform: string; url: string; active: boolean }[]
+  >([
+    { id: 'facebook', platform: 'Facebook', url: 'https://facebook.com', active: true },
+    { id: 'whatsapp', platform: 'WhatsApp', url: 'https://wa.me/8801614703406', active: true },
+    { id: 'instagram', platform: 'Instagram', url: 'https://instagram.com', active: true },
+    { id: 'youtube', platform: 'YouTube', url: 'https://youtube.com', active: true },
+    { id: 'twitter', platform: 'X (Twitter)', url: 'https://x.com', active: true },
+    { id: 'linkedin', platform: 'LinkedIn', url: 'https://linkedin.com', active: true },
+  ]);
+  const [newSocialPlatform, setNewSocialPlatform] = useState('');
+  const [newSocialUrl, setNewSocialUrl] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('shopmate_social_links');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSocialLinks(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const syncSocialLinksToStore = async (
+    nextLinks: { id: string; platform: string; url: string; active: boolean }[],
+    successMsg?: string
+  ) => {
+    setSocialLinks(nextLinks);
+    try {
+      localStorage.setItem('shopmate_social_links', JSON.stringify(nextLinks));
+    } catch {}
+    try {
+      await fetch('/api/store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ socialLinks: nextLinks }),
+      });
+    } catch {}
+    if (successMsg) setNotice(successMsg);
+  };
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [showStorefrontControl, setShowStorefrontControl] = useState(false);
 
@@ -2210,6 +2254,213 @@ export default function Home() {
                       <Sparkles size={14} /> AI Automation
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Social Media Links Manager */}
+              <div
+                style={{
+                  marginTop: '24px',
+                  paddingTop: '20px',
+                  borderTop: '1px solid var(--line)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#202033' }}>
+                      🌐 Social Media Links
+                    </h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                      Add, edit, or toggle your store&apos;s social media profiles — syncs live to the website footer.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    style={{ height: '34px', fontSize: '11px', padding: '0 14px' }}
+                    onClick={() =>
+                      syncSocialLinksToStore(
+                        socialLinks,
+                        '✅ Social media links saved & synced to live website!'
+                      )
+                    }
+                  >
+                    <CheckCircle2 size={14} /> Save &amp; Sync Social Links
+                  </button>
+                </div>
+
+                {/* Add New Social Media Link Form */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(150px, 210px) 1fr auto',
+                    gap: '10px',
+                    marginBottom: '14px',
+                    padding: '12px',
+                    background: '#f8f7ff',
+                    border: '1px dashed #d5cef7',
+                    borderRadius: '10px',
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Platform (e.g. TikTok, Telegram)"
+                    value={newSocialPlatform}
+                    onChange={e => setNewSocialPlatform(e.target.value)}
+                    style={{
+                      height: '36px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--line)',
+                      padding: '0 10px',
+                      fontSize: '12px',
+                      background: '#fff',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <input
+                    type="url"
+                    placeholder="https://tiktok.com/@shopmate"
+                    value={newSocialUrl}
+                    onChange={e => setNewSocialUrl(e.target.value)}
+                    style={{
+                      height: '36px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--line)',
+                      padding: '0 10px',
+                      fontSize: '12px',
+                      background: '#fff',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn primary"
+                    style={{ height: '36px', padding: '0 14px', fontSize: '12px' }}
+                    onClick={() => {
+                      const plat = newSocialPlatform.trim();
+                      const rawUrl = newSocialUrl.trim();
+                      if (!plat || !rawUrl) {
+                        setNotice('Please enter both platform name and link URL.');
+                        return;
+                      }
+                      const normalizedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+                      const next = [
+                        ...socialLinks,
+                        {
+                          id: `${plat.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
+                          platform: plat,
+                          url: normalizedUrl,
+                          active: true,
+                        },
+                      ];
+                      setNewSocialPlatform('');
+                      setNewSocialUrl('');
+                      syncSocialLinksToStore(next, `✅ ${plat} link added & synced to live website!`);
+                    }}
+                  >
+                    <Plus size={15} /> Add Link
+                  </button>
+                </div>
+
+                {/* Existing Social Media Links List */}
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {socialLinks.map(item => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(120px, 150px) 1fr auto',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--line)',
+                        background: item.active ? '#fff' : '#f8fafc',
+                        opacity: item.active ? 1 : 0.65,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Globe size={15} color={item.active ? '#6b5ce7' : '#94a3b8'} />
+                        <b style={{ fontSize: '12px', color: '#202033' }}>{item.platform}</b>
+                      </div>
+                      <input
+                        type="url"
+                        value={item.url}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setSocialLinks(prev =>
+                            prev.map(x => (x.id === item.id ? { ...x, url: val } : x))
+                          );
+                        }}
+                        placeholder={`https://${item.platform.toLowerCase()}.com/...`}
+                        style={{
+                          height: '34px',
+                          borderRadius: '7px',
+                          border: '1px solid #e2e8f0',
+                          padding: '0 10px',
+                          fontSize: '12px',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                        }}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={`Open ${item.platform}`}
+                          className="row-action"
+                          style={{ color: '#6b5ce7', display: 'grid', placeItems: 'center' }}
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = socialLinks.map(x =>
+                              x.id === item.id ? { ...x, active: !x.active } : x
+                            );
+                            syncSocialLinksToStore(
+                              next,
+                              `${item.platform} ${!item.active ? 'enabled' : 'hidden'} on storefront.`
+                            );
+                          }}
+                          style={{
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '5px 10px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: item.active ? '#dcfce7' : '#e2e8f0',
+                            color: item.active ? '#166534' : '#475569',
+                          }}
+                        >
+                          {item.active ? 'Active' : 'Hidden'}
+                        </button>
+                        <button
+                          type="button"
+                          className="row-action"
+                          title={`Remove ${item.platform}`}
+                          onClick={() => {
+                            const next = socialLinks.filter(x => x.id !== item.id);
+                            syncSocialLinksToStore(next, `${item.platform} link removed.`);
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>

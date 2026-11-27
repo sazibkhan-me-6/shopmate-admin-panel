@@ -48,6 +48,14 @@ let STORE_DATA: any = {
     phone: '+880 1614703406',
     whatsapp: '+880 1614703406',
   },
+  socialLinks: [
+    { id: 'facebook', platform: 'Facebook', url: 'https://facebook.com', active: true },
+    { id: 'whatsapp', platform: 'WhatsApp', url: 'https://wa.me/8801614703406', active: true },
+    { id: 'instagram', platform: 'Instagram', url: 'https://instagram.com', active: true },
+    { id: 'youtube', platform: 'YouTube', url: 'https://youtube.com', active: true },
+    { id: 'twitter', platform: 'X (Twitter)', url: 'https://x.com', active: true },
+    { id: 'linkedin', platform: 'LinkedIn', url: 'https://linkedin.com', active: true },
+  ],
   paymentGateways: [
     { id: 'bkash', name: 'bKash', enabled: true, merchantNumber: '01712-345678' },
     { id: 'nagad', name: 'Nagad', enabled: true, merchantNumber: '01812-987654' },

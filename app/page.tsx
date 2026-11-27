@@ -41,6 +41,8 @@ import {
   Filter,
   Bot,
   Sparkles,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 
 import LoginScreen, { UserProfile } from '../components/LoginScreen';
@@ -2546,8 +2548,9 @@ function ProductTable({
   onEditProduct: (p: Product) => void;
 }) {
   const [catFilter, setCatFilter] = useState<string>('All');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(25);
+  const [pageSize, setPageSize] = useState<number>(24);
 
   const uniqueCategories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -2572,7 +2575,7 @@ function ProductTable({
 
   return (
     <div>
-      {/* Category Filter Pills & Page Size Controls */}
+      {/* Category Filter Pills, Grid/List Switcher & Page Size Controls */}
       <div
         style={{
           display: 'flex',
@@ -2580,7 +2583,7 @@ function ProductTable({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '8px',
-          marginBottom: '14px',
+          marginBottom: '16px',
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -2631,6 +2634,26 @@ function ProductTable({
           <span>
             Showing <b>{pagedProducts.length}</b> of <b>{categoryFiltered.length}</b>
           </span>
+          <div className="tab-pills" role="group" aria-label="Product layout view">
+            <button
+              type="button"
+              className={`tab-pill ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Grid Layout View"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <LayoutGrid size={13} /> Grid
+            </button>
+            <button
+              type="button"
+              className={`tab-pill ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Table List View"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <List size={13} /> List
+            </button>
+          </div>
           <select
             value={pageSize}
             onChange={e => {
@@ -2646,15 +2669,126 @@ function ProductTable({
               fontFamily: 'inherit',
             }}
           >
-            <option value={25}>25 / page</option>
-            <option value={50}>50 / page</option>
-            <option value={100}>100 / page</option>
+            <option value={24}>24 / page</option>
+            <option value={48}>48 / page</option>
+            <option value={96}>96 / page</option>
             <option value={500}>Show All</option>
           </select>
         </div>
       </div>
 
-      <div className="table-wrap">
+      {viewMode === 'grid' ? (
+        <>
+          <div className="admin-products-grid">
+            {pagedProducts.map(p => {
+              const hasDiscount = (p.discountPercent || 0) > 0;
+              const salePrice =
+                p.discountedPrice ||
+                (hasDiscount ? p.price * (1 - (p.discountPercent || 0) / 100) : p.price);
+              const statusBg =
+                p.status === 'Active'
+                  ? 'rgba(220, 252, 231, 0.94)'
+                  : p.status === 'Low stock'
+                  ? 'rgba(254, 243, 199, 0.94)'
+                  : 'rgba(241, 245, 249, 0.94)';
+              const statusColor =
+                p.status === 'Active'
+                  ? '#15803d'
+                  : p.status === 'Low stock'
+                  ? '#b45309'
+                  : '#475569';
+
+              return (
+                <article key={p.id} className="admin-product-card">
+                  <div className="admin-product-media">
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        loading="lazy"
+                        onError={e => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '42px' }}>{p.emoji || '📦'}</span>
+                    )}
+                    {hasDiscount && (
+                      <span className="admin-product-discount-badge">-{p.discountPercent}% OFF</span>
+                    )}
+                    <span
+                      className="admin-product-status-badge"
+                      style={{ background: statusBg, color: statusColor }}
+                    >
+                      {p.status}
+                    </span>
+                  </div>
+
+                  <div className="admin-product-body">
+                    <div className="admin-product-meta">
+                      <span className="admin-product-cat">{p.category}</span>
+                      <span className="admin-product-sku">{p.sku}</span>
+                    </div>
+                    <h3 className="admin-product-title" title={p.name}>
+                      {p.name}
+                    </h3>
+                    <div className="admin-product-price-row">
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                        <b style={{ fontSize: '16px', color: hasDiscount ? '#15803d' : '#202033' }}>
+                          {money(salePrice)}
+                        </b>
+                        {hasDiscount && (
+                          <span
+                            style={{
+                              textDecoration: 'line-through',
+                              color: '#9998aa',
+                              fontSize: '11px',
+                            }}
+                          >
+                            {money(p.price)}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: p.stock <= 12 ? '#d97706' : '#64748b',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Stock: {p.stock}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="admin-product-actions">
+                    <button
+                      type="button"
+                      className="admin-product-edit-btn"
+                      onClick={() => onEditProduct(p)}
+                      title="Edit product details"
+                    >
+                      <Pencil size={13} /> Edit Product
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-product-del-btn"
+                      onClick={() => setProducts(old => old.filter(x => x.id !== p.id))}
+                      title="Remove product"
+                      aria-label={`Remove ${p.name}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {pagedProducts.length === 0 && <div className="empty">No products match your search.</div>}
+        </>
+      ) : (
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -2774,7 +2908,8 @@ function ProductTable({
           </tbody>
         </table>
         {pagedProducts.length === 0 && <div className="empty">No products match your search.</div>}
-      </div>
+        </div>
+      )}
 
       {/* Pagination Bar */}
       {totalPages > 1 && (

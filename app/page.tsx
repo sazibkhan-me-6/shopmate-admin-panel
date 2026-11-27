@@ -873,32 +873,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Store switch connected to live storefront */}
-        <div
-          className="store-switch"
-          onClick={() => setShowStorefrontControl(true)}
-          style={{ cursor: 'pointer' }}
-          title="Connected to shopmate-ecommerce-kohl.vercel.app - Click to control"
-        >
-          <div className="store-icon">SM</div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <b>ShopMate Store</b>
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: '#22966b',
-                  display: 'inline-block',
-                }}
-              />
-            </div>
-            <small style={{ color: '#22966b', fontWeight: 600 }}>shopmate-ecommerce-kohl...</small>
-          </div>
-          <ChevronDown size={15} />
-        </div>
-
         <div className="nav-label">WORKSPACE</div>
         <nav>
           {nav.map(n => (
@@ -921,19 +895,6 @@ export default function Home() {
         </nav>
 
         <div className="nav-label management">STOREFRONT CONTROL</div>
-        <button
-          type="button"
-          className="nav-item"
-          onClick={() => {
-            setShowStorefrontControl(true);
-            setMobile(false);
-          }}
-        >
-          <Globe size={18} />
-          <span>Live Storefront</span>
-          <em style={{ background: '#e9f8f1', color: '#22966b', fontWeight: 700 }}>Online</em>
-        </button>
-
         <button
           className={section === 'Settings' ? 'nav-item active' : 'nav-item'}
           onClick={() => {
@@ -983,22 +944,6 @@ export default function Home() {
         </button>
 
         <div className="sidebar-bottom">
-          <div
-            className="help"
-            onClick={() => {
-              setSupportInitialTab('inbox');
-              setSection('Customer Support');
-              setMobile(false);
-            }}
-            style={{ cursor: 'pointer' }}
-            title="Click to open Customer Support"
-          >
-            <CircleHelp size={18} />
-            <div>
-              <b>Need help?</b>
-              <small>Click for 24/7 support</small>
-            </div>
-          </div>
           <div className="profile">
             <div className="avatar">{user.avatar}</div>
             <div>
